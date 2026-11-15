@@ -46,6 +46,33 @@ label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--mu
 
 .tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;border-radius:999px;padding:3px 8px;white-space:nowrap}
 .tag.ok{background:#14532D;color:#BBF7D0}.tag.wait{background:#262C36;color:#D1D5DB}.tag.bad{background:#7F1D1D;color:#FECACA}
+#l-vbox{position:relative;width:100%;aspect-ratio:3/4;max-height:52vh;border-radius:18px;overflow:hidden;background:#000;border:4px solid #262C36;transition:border-color .3s}
+#l-vbox video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#l-vtime{position:absolute;left:12px;top:12px;background:rgba(0,0,0,.55);border-radius:10px;padding:4px 10px;font-size:22px;font-weight:600}
+#l-vrec{position:absolute;right:12px;top:14px;display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.55);border-radius:10px;padding:4px 10px;font-size:13px;color:#FCA5A5}
+.vid .ringbox{display:none}
+#l-vbox{max-height:38vh}
+body.live-g{background:#0B3B1E}body.live-a{background:#4A3505}body.live-r{background:#4C0F0F;animation:redpulse 1.6s ease-in-out infinite}
+@keyframes redpulse{50%{background:#2A0A0A}}
+body.live-g #l-time,body.live-g #l-vtime{color:#86EFAC}body.live-a #l-time,body.live-a #l-vtime{color:#FDE68A}body.live-r #l-time,body.live-r #l-vtime{color:#FCA5A5}
+body.live-g .fb,body.live-a .fb,body.live-r .fb{background:rgba(14,17,22,.55)}
+#sigflash{position:fixed;inset:0;z-index:30;pointer-events:none;opacity:0;display:flex;align-items:center;justify-content:center;font-size:56px;font-weight:700;letter-spacing:.06em;color:#fff}
+#sigflash.go{animation:sflash 1.8s ease-out}
+@keyframes sflash{0%,30%,60%{opacity:.92}15%,45%{opacity:.25}100%{opacity:0}}
+.gal{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{position:relative;display:flex;flex-direction:column;gap:6px}
+.tile .thumb{position:relative;width:100%;aspect-ratio:1/1;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#1C2129;padding:0;display:block;color:inherit}
+.tile .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.tile .aud{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:12px;font-weight:600}
+.tile .chipd{position:absolute;left:8px;top:8px;background:rgba(0,0,0,.6);color:#F3F4F6;font-size:12px;font-weight:600;border-radius:8px;padding:3px 7px}
+.tile .chipt{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.6);color:#F3F4F6;font-size:12px;border-radius:8px;padding:3px 7px}
+.tile .chipm{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.6);border-radius:8px;padding:3px 6px;display:flex}
+.tile .tstar{position:absolute;right:2px;top:2px;width:44px;height:44px;border:none;background:none;display:flex;align-items:center;justify-content:center;color:#F3F4F6;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))}
+.tile .tstar.on{color:var(--accent)}
+.tile .meta{display:flex;align-items:flex-start;gap:4px}
+.tile .meta .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;background:none;border:none;color:inherit;text-align:left;padding:0}
+.tile .meta .t{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .tdel{width:36px;height:36px;border:none;background:none;color:#6B7280;display:flex;align-items:center;justify-content:center;flex:none}
 mark{background:#3A2E12;color:#FCD34D;border-radius:4px;padding:0 3px;font-weight:600}
 .transcript{font-size:15px;line-height:1.7;color:#E5E7EB;max-height:320px;overflow:auto;padding-right:4px}
 .ck{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:#E5E7EB;padding:10px 0;border-top:1px solid var(--line)}
@@ -133,7 +160,9 @@ nav button.on{color:var(--accent)}
         <option value="none">No timing</option>
       </select>
     </label>
-    <div class="switch"><span>Record audio for delivery analysis</span><input type="checkbox" id="s-rec" checked aria-label="Record audio"></div>
+    <div class="switch"><span>Record for delivery analysis</span><input type="checkbox" id="s-rec" checked aria-label="Record for analysis"></div>
+    <div class="row" id="s-modewrap"><span style="font-size:15px">Mode</span><div class="seg" id="s-mode" style="width:190px" role="group" aria-label="Recording mode"><button type="button" data-m="audio" class="on">Audio</button><button type="button" data-m="video">Video</button></div></div>
+    <p class="lab hidden" id="s-modehint" style="margin:0">Video uses your front camera and adds body-language feedback (eye contact, gestures, posture, expression). Videos take more space on your phone and a little longer to check.</p>
   </div>
   <div class="card hidden" id="tt-card">
     <div class="row"><h2>Your Table Topic</h2><span class="lab" id="tt-src"></span></div>
@@ -169,6 +198,7 @@ nav button.on{color:var(--accent)}
 <!-- LIVE -->
 <section id="v-live" class="wrap hidden">
   <div class="row"><span style="font-weight:600" id="l-title">Speech</span><span class="lab" id="l-type"></span></div>
+  <div id="l-vbox" class="hidden"><video id="l-video" autoplay muted playsinline></video><span class="mono" id="l-vtime">00:00</span><span id="l-vrec"><span class="recdot"></span>REC</span></div>
   <div class="ringbox">
     <svg width="210" height="210" viewBox="0 0 210 210" aria-hidden="true"><circle cx="105" cy="105" r="96" fill="none" stroke="#262C36" stroke-width="8"></circle><circle id="l-ring" cx="105" cy="105" r="96" fill="none" stroke="#F5A524" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 603" transform="rotate(-90 105 105)"></circle></svg>
     <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
@@ -200,12 +230,13 @@ nav button.on{color:var(--accent)}
 <!-- LIBRARY -->
 <section id="v-lib" class="wrap hidden">
   <div class="row"><h1>Recordings</h1><span class="lab" id="lib-count"></span></div>
-  <div class="seg" role="tablist"><button class="on" data-f="all">All</button><button data-f="star">Starred</button></div>
+  <div class="seg" role="tablist"><button class="on" data-f="all">All</button><button data-f="star">Starred</button><button data-f="video">Videos</button></div>
   <div id="lib-list" style="display:flex;flex-direction:column;gap:10px"></div>
 </section>
 
 
 
+<div id="sigflash" aria-hidden="true"></div>
 <div id="modal" class="modal hidden"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="m-title">
   <h2 id="m-title"></h2><p class="note" id="m-text" style="margin:0"></p>
   <div class="grid2"><button class="btn ghost sm" id="m-no">Cancel</button><button class="btn sm" id="m-yes" style="background:#DC2626;color:#fff">Delete</button></div>
@@ -277,7 +308,7 @@ async function wavFrom(blob,forceSR){
   for(let i=0;i<x.length;i++){const s=Math.max(-1,Math.min(1,x[i]));v.setInt16(44+i*2,s<0?s*0x8000:s*0x7FFF,true)}
   return new Blob([ab],{type:'audio/wav'});
 }
-const RULES_VERSION='v3';
+const RULES_VERSION='v4';
 const PINNED_MODELS=['gemini-3.5-flash','gemini-3.5-flash-lite','gemini-3.8-flash','gemini-3.1-flash-lite'];
 function buildPrompt(s){
   return `You are the Ah-Counter for a Toastmasters club. Listen to this speech recording and follow these rules exactly.
@@ -299,25 +330,35 @@ Do not judge content quality, humour, facts, opinions, grammar or vocabulary. Do
 - takeaway: "yes" if the last part states one clear message, lesson or call to action. "partly" if a message is only implied. "no" if there is none.
 For each check write "note": ONE short factual sentence describing what the speaker did, addressed as "you" (for example "You opened by asking the audience a question."). Observation only, no advice, no praise, no criticism of content.
 
-Return ONLY JSON matching the schema. If there is no speech, return an empty transcript, an empty fillers list and "no" for every check.`;
+${s.video?`PART C: BODY LANGUAGE (this is a video; judge ONLY what you SEE, using ONLY these rules; observation only, no advice)
+- eye_contact: "yes" if the speaker looks at the camera for most of the speech (roughly 70% or more). "partly" if they often look away (down, sideways, at notes). "no" if they rarely look at the camera.
+- gestures: "yes" if the hands are visible and used for deliberate gestures that match the words, with hands at rest in between. "partly" if gestures are few or repetitive, or there is some fidgeting. "no" if the hands stay hidden or still the whole time, or there is constant fidgeting. If the hands are out of frame most of the time, use "partly" and say so in the note.
+- posture: "yes" if upright and steady. "partly" if there is some swaying, leaning or shifting. "no" if slouched or constantly moving.
+- expression: "yes" if the facial expression changes to match the content (for example smiling at light moments). "partly" if mostly neutral. "no" if flat or tense throughout.
+For each write "note": ONE short factual sentence addressed as "you", with an approximate time if relevant (for example "You looked down at about 0:45 for several seconds.").
+
+`:''}Return ONLY JSON matching the schema. If there is no speech, return an empty transcript, an empty fillers list and "no" for every check.`;
 }
-const SCHEMA=(()=>{const chk={type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no']},note:{type:'STRING'}},required:['status','note']};
+const SCHEMA_V=(video)=>{const chk={type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no']},note:{type:'STRING'}},required:['status','note']};
   return {type:'OBJECT',properties:{transcript:{type:'STRING'},word_count:{type:'INTEGER'},
   fillers:{type:'ARRAY',items:{type:'OBJECT',properties:{word:{type:'STRING'},type:{type:'STRING',enum:['filler','repeat']},time_sec:{type:'NUMBER'}},required:['word','type','time_sec']}},
-  structure:{type:'OBJECT',properties:{opening:chk,main_points:{type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no']},count:{type:'INTEGER'},points:{type:'ARRAY',items:{type:'STRING'}},note:{type:'STRING'}},required:['status','count','points','note']},transitions:chk,conclusion:chk,takeaway:chk},required:['opening','main_points','transitions','conclusion','takeaway']}},
-  required:['transcript','word_count','fillers','structure']}})();
+  structure:{type:'OBJECT',properties:{opening:chk,main_points:{type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no']},count:{type:'INTEGER'},points:{type:'ARRAY',items:{type:'STRING'}},note:{type:'STRING'}},required:['status','count','points','note']},transitions:chk,conclusion:chk,takeaway:chk},required:['opening','main_points','transitions','conclusion','takeaway']},
+  ...(video?{body:{type:'OBJECT',properties:{eye_contact:chk,gestures:chk,posture:chk,expression:chk},required:['eye_contact','gestures','posture','expression']}}:{})},
+  required:['transcript','word_count','fillers','structure',...(video?['body']:[])]}};
+const SCHEMA=SCHEMA_V(false);
 async function callGemini(model,key,mime,b64,prompt,opt,signal){
-  opt=opt||{schema:true,thinking:true};
+  opt=opt||{schema:true,thinking:true};const part=opt.file?{file_data:{mime_type:mime,file_uri:opt.file}}:{inline_data:{mime_type:mime,data:b64}};
   const gc={temperature:0,topP:1,seed:7,responseMimeType:'application/json'};
-  if(opt.schema)gc.responseSchema=SCHEMA;
+  if(opt.schema)gc.responseSchema=SCHEMA_V(!!opt.video);if(opt.video&&opt.lowres!==false)gc.mediaResolution='MEDIA_RESOLUTION_LOW';
   if(opt.thinking)gc.thinkingConfig=/^gemini-2\.5/.test(model)?{thinkingBudget:0}:{thinkingLevel:'minimal'};
-  const body={contents:[{role:'user',parts:[{inline_data:{mime_type:mime,data:b64}},{text:prompt}]}],generationConfig:gc};
-  const ac=new AbortController();const tm=setTimeout(()=>ac.abort(),45000);const lk=()=>ac.abort();if(signal)signal.addEventListener('abort',lk);
+  const body={contents:[{role:'user',parts:[part,{text:prompt}]}],generationConfig:gc};
+  const ac=new AbortController();const tm=setTimeout(()=>ac.abort(),opt.video?120000:45000);const lk=()=>ac.abort();if(signal)signal.addEventListener('abort',lk);
   let r,t;
   try{r=await fetch(`${API}/models/${model}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body),signal:ac.signal});t=await r.text()}
   catch(e){if(signal&&signal.aborted)throw new Error('ABORTED');const te=new TypeError(ac.signal.aborted?'timeout':String(e.message||e));te.timeout=ac.signal.aborted;throw te}
   finally{clearTimeout(tm);if(signal)signal.removeEventListener('abort',lk)}
   if(!r.ok){
+    if(r.status===400&&opt.video&&opt.lowres!==false&&/media_?resolution/i.test(t))return callGemini(model,key,mime,b64,prompt,{...opt,lowres:false},signal);
     if(r.status===400&&opt.thinking&&/thinking/i.test(t))return callGemini(model,key,mime,b64,prompt,{...opt,thinking:false},signal);
     if(r.status===400&&opt.schema&&/schema|seed|generation_?config/i.test(t))return callGemini(model,key,mime,b64,prompt,{...opt,schema:false},signal);
     const e=new Error(t.slice(0,300));e.status=r.status;throw e}
@@ -328,6 +369,50 @@ async function callGemini(model,key,mime,b64,prompt,opt,signal){
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const mb=n=>(n/1048576).toFixed(1)+' MB';
+async function uploadToGemini(key,blob,mime,name,signal,onStep){
+  onStep(`Uploading video (${mb(blob.size)})… keep this screen open`);
+  const st=await fetch('https://generativelanguage.googleapis.com/upload/v1beta/files',{method:'POST',signal,headers:{'x-goog-api-key':key,'X-Goog-Upload-Protocol':'resumable','X-Goog-Upload-Command':'start','X-Goog-Upload-Header-Content-Length':String(blob.size),'X-Goog-Upload-Header-Content-Type':mime,'Content-Type':'application/json'},body:JSON.stringify({file:{display_name:name}})});
+  if(!st.ok){const e=new Error('Upload start failed ('+st.status+'): '+(await st.text()).slice(0,160));e.status=st.status;throw e}
+  const url=st.headers.get('x-goog-upload-url');if(!url)throw new Error('NOUPLOADURL');
+  const up=await fetch(url,{method:'POST',signal,headers:{'X-Goog-Upload-Offset':'0','X-Goog-Upload-Command':'upload, finalize'},body:blob});
+  if(!up.ok){const e=new Error('Upload failed ('+up.status+')');e.status=up.status;throw e}
+  let f=(await up.json()).file;const t0=Date.now();
+  while(f&&f.state&&f.state!=='ACTIVE'){
+    if(f.state==='FAILED')throw new Error('Google could not process this video.');
+    if(Date.now()-t0>100000)throw new Error('Google took too long to process the video. Tap Try again in a minute.');
+    onStep('Google is processing the video…');await sleep(2500);
+    const g=await fetch(`${API}/${f.name}`,{headers:{'x-goog-api-key':key},signal});if(g.ok)f=await g.json();
+  }
+  return {uri:f.uri,mime:f.mimeType||mime};
+}
+async function runVideoAI(s,key,models,onStep,signal){
+  const vmime=(s.vmime||s.video.type||'video/webm').split(';')[0].trim();
+  let file=null,inline=null;
+  try{file=await uploadToGemini(key,s.video,vmime,'speech-'+s.id,signal,onStep)}
+  catch(e){
+    if(signal&&signal.aborted)throw new Error('ABORTED');
+    if(e.status===400&&/API key/i.test(e.message))throw new Error('Gemini rejected the key.');
+    if(s.video.size<14*1024*1024){onStep('Preparing video…');inline={mime:vmime,b64:await blobToB64(s.video)}}
+    else throw new Error(e instanceof TypeError?`Couldn't upload the video (${mb(s.video.size)}). Try on Wi-Fi, keep this screen open, and tap Try again.`:(e.message==='NOUPLOADURL'?'This browser could not upload the video. Try Chrome or Safari.':e.message));
+  }
+  let last=null,net=0;
+  for(let mi=0;mi<models.length;){
+    const m=models[mi];onStep(`Watching your video with ${m}…`);
+    try{
+      if(signal&&signal.aborted)throw new Error('ABORTED');
+      const out=file?await callGemini(m,key,file.mime,null,buildPrompt(s),{schema:true,thinking:true,video:true,file:file.uri},signal)
+                    :await callGemini(m,key,inline.mime,inline.b64,buildPrompt(s),{schema:true,thinking:true,video:true},signal);
+      out.model=m;out.rules=RULES_VERSION;out.at=Date.now();out.video=true;return out;
+    }catch(e){
+      last=e;if(e.message==='ABORTED')throw e;
+      if(e instanceof TypeError){if(++net>=3)throw new Error(e.timeout?'Google took too long to analyse the video. Tap Try again in a minute.':`Lost the connection while analysing the video. Try on Wi-Fi and tap Try again.`);await sleep(1500);continue}
+      if([404,429,500,503,403,400].includes(e.status)||e instanceof SyntaxError){mi++;continue}
+      break;
+    }
+  }
+  if(last&&last.status===429)throw new Error('Free-tier limit reached for now. Wait a minute and tap Try again.');
+  throw new Error('Gemini could not analyse this video. '+(last?String(last.message).slice(0,160):''));
+}
 async function runAI(s,onStep,signal){
   const key=LS('ahc-key');if(!key)throw new Error('NOKEY');
   if(!s.audio)throw new Error('No audio was recorded for this speech.');
@@ -342,6 +427,7 @@ async function runAI(s,onStep,signal){
   let avail;try{avail=await pickModels(key,signal)}catch(e){if(signal&&signal.aborted)throw new Error('ABORTED');if(e instanceof TypeError||e.name==='AbortError')throw new Error('Could not connect to Google. Check your internet and tap Try again.');throw e}
   const models=[...PINNED_MODELS.filter(m=>avail.includes(m)),...avail.filter(m=>!PINNED_MODELS.includes(m))].slice(0,4);
   if(!models.length)throw new Error('No suitable Gemini model is available for this key.');
+  if(s.video)return runVideoAI(s,key,models,onStep,signal);
   const T0=performance.now();let last=null,vi=0,netFails=0;const tries=[];let wasHidden=document.hidden;const onVis=()=>{if(document.hidden)wasHidden=true};document.addEventListener('visibilitychange',onVis);
   try{
   for(let mi=0;mi<models.length;){
@@ -451,38 +537,64 @@ $('#tt-form').addEventListener('submit',e=>{e.preventDefault();ttNew()});
 function ttShowCard(){const on=$('#s-type').value==='tt';$('#tt-card').classList.toggle('hidden',!on);if(on&&!ttCurrent)ttNew()}
 $('#s-type').addEventListener('change',ttShowCard);
 
+/* ---------- thumbnails ---------- */
+function grabThumb(v){try{const w=v.videoWidth,h=v.videoHeight;if(!w||!h)return null;const sz=320,sc=sz/Math.min(w,h);const c=document.createElement('canvas');c.width=sz;c.height=sz;const x=c.getContext('2d');x.drawImage(v,(sz-w*sc)/2,(sz-h*sc)/2,w*sc,h*sc);return c.toDataURL('image/jpeg',0.72)}catch(e){return null}}
+async function thumbFromBlob(blob){return new Promise(res=>{const v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';const u=URL.createObjectURL(blob);let done=false;const fin=r=>{if(done)return;done=true;URL.revokeObjectURL(u);res(r)};
+  v.onloadeddata=()=>{try{v.currentTime=Math.min(1.5,(v.duration&&isFinite(v.duration))?v.duration/2:1.5)}catch(e){fin(grabThumb(v))}};v.onseeked=()=>fin(grabThumb(v));v.onerror=()=>fin(null);setTimeout(()=>fin(null),6000);v.src=u})}
+
+/* ---------- recording mode ---------- */
+let recMode='audio';
+function setMode(m){recMode=m==='video'?'video':'audio';document.querySelectorAll('#s-mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===recMode));$('#s-modehint').classList.toggle('hidden',recMode!=='video')}
+document.querySelectorAll('#s-mode button').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.m)));
+$('#s-rec').addEventListener('change',()=>$('#s-modewrap').classList.toggle('hidden',!$('#s-rec').checked));
+try{const p=JSON.parse(localStorage.getItem('ahc-prefs')||'{}');setMode(p.mode||'audio');if(p.rec===false)$('#s-modewrap').classList.add('hidden')}catch(e){}
+
 /* ---------- views ---------- */
 let current='setup';
 function show(v){current=v;if(v==='setup')setTimeout(ttShowCard,0);for(const id of['setup','live','report','lib'])$('#v-'+id).classList.toggle('hidden',id!==v);$('#nav').classList.toggle('hidden',v==='live');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v||(v==='report'&&b.dataset.v==='lib')));window.scrollTo(0,0);if(v==='lib')renderLib()}
 document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>show(b.dataset.v)));
 
 /* ---------- live session ---------- */
-let S=null,timerId=null,rec=null,chunks=[],stream=null,wake=null,lastSig='';
+let vrec=null,vchunks=[],vmime='';let S=null,timerId=null,rec=null,chunks=[],stream=null,wake=null,lastSig='';
 function elapsed(){if(!S)return 0;return (S.accum+(S.running?(performance.now()-S.t0):0))/1000}
 $('#b-start').addEventListener('click',async()=>{
   const type=$('#s-type').value,T=TYPES[type];
   const title=$('#s-title').value.trim()||T.name;
   const speaker=$('#s-speaker').value.trim();
-  try{localStorage.setItem('ahc-prefs',JSON.stringify({speaker,type,rec:$('#s-rec').checked}))}catch(e){}
+  try{localStorage.setItem('ahc-prefs',JSON.stringify({speaker,type,rec:$('#s-rec').checked,mode:recMode}))}catch(e){}
   const topic=type==='tt'&&ttCurrent?ttCurrent.t:'';
   if(type==='tt'){ttCurrent=null;$('#tt-topic').textContent=''}
   S={id:'s'+Date.now(),title,speaker,type,topic,timing:{g:T.g,a:T.a,r:T.r},words:words.slice(),counts:Object.fromEntries(words.map(w=>[w,0])),taps:[],startedAt:Date.now(),accum:0,t0:performance.now(),running:true,starred:false,audio:null,mime:'',analysis:null};
-  chunks=[];rec=null;stream=null;
+  chunks=[];rec=null;stream=null;vrec=null;vchunks=[];vmime='';
   $('#l-recstate').classList.add('hidden');
+  let videoOn=false;
   if($('#s-rec').checked){
+    const AUD={echoCancellation:false,noiseSuppression:false,autoGainControl:false};
+    if(recMode==='video'){
+      try{stream=await navigator.mediaDevices.getUserMedia({audio:AUD,video:{facingMode:'user',width:{ideal:640},height:{ideal:480},frameRate:{ideal:15,max:24}}});videoOn=true}
+      catch(e){toast('Camera not available, recording audio only')}
+    }
     try{
-      stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+      if(!stream)stream=await navigator.mediaDevices.getUserMedia({audio:AUD});
+      const aStream=new MediaStream(stream.getAudioTracks());
       const mt=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))||'';
-      rec=new MediaRecorder(stream,mt?{mimeType:mt}:undefined);
+      rec=new MediaRecorder(aStream,mt?{mimeType:mt}:undefined);
       rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
       rec.start(1000);
       $('#l-recstate').classList.remove('hidden');
+      if(videoOn){
+        vmime=['video/webm;codecs=vp8,opus','video/webm','video/mp4;codecs=avc1,mp4a','video/mp4'].find(m=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))||'';
+        const vo={videoBitsPerSecond:350000,audioBitsPerSecond:48000};if(vmime)vo.mimeType=vmime;
+        try{vrec=new MediaRecorder(stream,vo);vrec.ondataavailable=e=>{if(e.data&&e.data.size)vchunks.push(e.data)};vrec.start(1000)}catch(e){vrec=null;videoOn=false;toast('Video recording not supported here, recording audio only')}
+      }
     }catch(e){toast('Microphone not available — counting only');}
   }
+  $('#v-live').classList.toggle('vid',videoOn);$('#l-vbox').classList.toggle('hidden',!videoOn);
+  if(videoOn){const v=$('#l-video');v.srcObject=stream;try{v.play()}catch(e){}const sid=S.id;setTimeout(()=>{if(S&&S.id===sid)S.thumb=grabThumb(v)},2500)}
   S.t0=performance.now();
   try{wake=await navigator.wakeLock.request('screen')}catch(e){wake=null}
   $('#l-title').textContent=title;{let el=document.getElementById('l-topic');if(!el){el=document.createElement('p');el.id='l-topic';el.style.cssText='margin:0;font-size:18px;line-height:1.4;font-weight:600;color:#F9FAFB;text-align:center';$('.ringbox').before(el)}el.textContent=topic?'“'+topic+'”':'';el.classList.toggle('hidden',!topic)}$('#l-type').textContent=TYPES[type].name+(speaker?' · '+speaker:'');
-  const sg=S.timing;$('#l-signals').innerHTML=sg.r?`<span class="sig g">Green ${fmtShort(sg.g)}</span><span class="sig a">Amber ${fmtShort(sg.a)}</span><span class="sig r">Red ${fmtShort(sg.r)}</span>`:'';
+  const sg=S.timing;$('#l-signals').innerHTML=sg.r?`<span class="sig g">Green ${fmtShort(sg.g)}</span><span class="sig a">Yellow ${fmtShort(sg.a)}</span><span class="sig r">Red ${fmtShort(sg.r)}</span>`:'';
   $('#l-buttons').innerHTML=S.words.map(w=>`<button class="fb" data-w="${esc(w)}"><span>${esc(w)}</span><span class="n">0</span></button>`).join('');
   $('#b-pause').textContent='Pause';lastSig='';
   updateLive();show('live');
@@ -490,15 +602,20 @@ $('#b-start').addEventListener('click',async()=>{
 });
 $('#l-buttons').addEventListener('click',e=>{const b=e.target.closest('.fb');if(!b||!S)return;const w=b.dataset.w;S.counts[w]++;S.taps.push({w,t:elapsed()});b.querySelector('.n').textContent=S.counts[w];b.classList.add('flash');setTimeout(()=>b.classList.remove('flash'),180);try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}updateLive()});
 $('#b-undo').addEventListener('click',()=>{if(!S||!S.taps.length)return;const t=S.taps.pop();S.counts[t.w]--;const b=[...document.querySelectorAll('#l-buttons .fb')].find(x=>x.dataset.w===t.w);if(b)b.querySelector('.n').textContent=S.counts[t.w];toast('Removed one “'+t.w+'”');updateLive()});
-$('#b-pause').addEventListener('click',()=>{if(!S)return;if(S.running){S.accum+=performance.now()-S.t0;S.running=false;if(rec&&rec.state==='recording')rec.pause();$('#b-pause').textContent='Resume'}else{S.t0=performance.now();S.running=true;if(rec&&rec.state==='paused')rec.resume();$('#b-pause').textContent='Pause'}});
-function updateLive(){if(!S)return;const t=elapsed();$('#l-time').textContent=fmt(t);const total=S.taps.length;$('#l-total').textContent=total;$('#l-rate').textContent=t>5?(total/(t/60)).toFixed(1):'0.0';
+$('#b-pause').addEventListener('click',()=>{if(!S)return;if(S.running){S.accum+=performance.now()-S.t0;S.running=false;if(rec&&rec.state==='recording')rec.pause();if(vrec&&vrec.state==='recording')vrec.pause();$('#b-pause').textContent='Resume'}else{S.t0=performance.now();S.running=true;if(rec&&rec.state==='paused')rec.resume();if(vrec&&vrec.state==='paused')vrec.resume();$('#b-pause').textContent='Pause'}});
+function updateLive(){if(!S)return;const t=elapsed();$('#l-time').textContent=fmt(t);$('#l-vtime').textContent=fmt(t);const total=S.taps.length;$('#l-total').textContent=total;$('#l-rate').textContent=t>5?(total/(t/60)).toFixed(1):'0.0';
   const r=S.timing.r||Math.max(60,Math.ceil(t/60)*60);const frac=Math.min(1,t/r);$('#l-ring').setAttribute('stroke-dasharray',(603*frac).toFixed(1)+' 603');
   let sig='';if(S.timing.r){if(t>=S.timing.r)sig='r';else if(t>=S.timing.a)sig='a';else if(t>=S.timing.g)sig='g'}
   document.querySelectorAll('#l-signals .sig').forEach(el=>el.classList.toggle('on',el.classList.contains(sig)));
   $('#l-ring').setAttribute('stroke',sig==='r'?'#EF4444':sig==='a'?'#F59E0B':sig==='g'?'#22C55E':'#F5A524');
-  if(sig&&sig!==lastSig){lastSig=sig;try{navigator.vibrate&&navigator.vibrate([60,60,60])}catch(e){}}
+  $('#l-vbox').style.borderColor=sig==='r'?'#EF4444':sig==='a'?'#F59E0B':sig==='g'?'#22C55E':'#262C36';
+  document.body.classList.toggle('live-g',sig==='g');document.body.classList.toggle('live-a',sig==='a');document.body.classList.toggle('live-r',sig==='r');
+  if(sig&&sig!==lastSig){lastSig=sig;try{navigator.vibrate&&navigator.vibrate([60,60,60])}catch(e){}
+    const f=$('#sigflash');f.style.background=sig==='r'?'#DC2626':sig==='a'?'#EAB308':'#16A34A';f.textContent=sig==='r'?'RED':sig==='a'?'YELLOW':'GREEN';f.classList.remove('go');void f.offsetWidth;f.classList.add('go');}
 }
-function stopMedia(){return new Promise(res=>{if(!rec||rec.state==='inactive'){res();return}rec.onstop=()=>res();try{rec.stop()}catch(e){res()}}).then(()=>{if(stream)stream.getTracks().forEach(t=>t.stop());try{wake&&wake.release()}catch(e){}wake=null})}
+function stopOne(r){return new Promise(res=>{if(!r||r.state==='inactive'){res();return}r.onstop=()=>res();try{r.stop()}catch(e){res()}})}
+function clearSig(){document.body.classList.remove('live-g','live-a','live-r')}
+function stopMedia(){clearSig();return Promise.all([stopOne(rec),stopOne(vrec)]).then(()=>{try{$('#l-video').srcObject=null}catch(e){}if(stream)stream.getTracks().forEach(t=>t.stop());try{wake&&wake.release()}catch(e){}wake=null})}
 $('#b-cancel').addEventListener('click',()=>confirmBox('Discard this speech?','The count and recording will be lost.','Discard',async()=>{clearInterval(timerId);await stopMedia();S=null;show('setup')}));
 $('#b-stop').addEventListener('click',async()=>{
   if(!S)return;clearInterval(timerId);
@@ -507,6 +624,7 @@ $('#b-stop').addEventListener('click',async()=>{
   const s=S;S=null;
   s.duration=s.accum/1000;delete s.accum;delete s.t0;delete s.running;
   if(chunks.length){s.mime=chunks[0].type||(rec&&rec.mimeType)||'audio/webm';s.audio=new Blob(chunks,{type:s.mime})}
+  if(vchunks.length){s.vmime=(vchunks[0].type||(vrec&&vrec.mimeType)||vmime||'video/webm');s.video=new Blob(vchunks,{type:s.vmime});s.mode='video'}else s.mode='audio';
   await save(s);
   openReport(s.id,true);
 });
@@ -595,14 +713,14 @@ async function startAI(id){
   const s=await load(id);if(!s){aiState[id]={busy:false};return}
   if(currentId===id)renderReport(s);
   let capTimer;
-  const cap=new Promise((_,rej)=>{capTimer=setTimeout(()=>{ctrl.cap=true;ctrl.abort();rej(new Error('ABORTED'))},HARD_CAP_MS);ctrl.signal.addEventListener('abort',()=>rej(new Error('ABORTED')))});
+  const cap=new Promise((_,rej)=>{capTimer=setTimeout(()=>{ctrl.cap=true;ctrl.abort();rej(new Error('ABORTED'))},s.video?240000:HARD_CAP_MS);ctrl.signal.addEventListener('abort',()=>rej(new Error('ABORTED')))});
   try{
     const out=await Promise.race([runAI(s,step=>{aiState[id].step=step;const el=document.getElementById('ai-step');if(el&&currentId===id)el.textContent=step},ctrl.signal),cap]);
     const t0=aiState[id].t0;out.tookSec=Math.round((Date.now()-t0)/1000);const fresh=await load(id);if(!fresh)return;fresh.ai=out;fresh.aiError=null;await save(fresh);aiState[id]={busy:false};
     if(currentId===id&&current==='report')renderReport(fresh);
   }catch(e){
     let msg=e.message;
-    if(msg==='ABORTED')msg=ctrl.cap?`Stopped after ${fmtShort(HARD_CAP_MS/1000)} with no answer from Google. Your connection may be too slow or unstable right now. Try on Wi-Fi and tap Try again.`:'You stopped the check. Tap Try again whenever you’re ready.';
+    if(msg==='ABORTED')msg=ctrl.cap?`Stopped after ${fmtShort((s.video?240000:HARD_CAP_MS)/1000)} with no answer from Google. Your connection may be too slow or unstable right now. Try on Wi-Fi and tap Try again.`:'You stopped the check. Tap Try again whenever you’re ready.';
     aiState[id]={busy:false,err:msg==='NOKEY'?'':msg};
     const fresh=await load(id);if(fresh&&msg!=='NOKEY'){fresh.aiError=msg;await save(fresh)}if(fresh&&currentId===id&&current==='report')renderReport(fresh);
   }finally{clearTimeout(capTimer)}
@@ -626,7 +744,7 @@ function renderReport(s){
   if(T&&T.r){const ok=d>=T.g-30&&d<=T.r+30;timingTxt=ok?'Qualified':(d<T.g-30?'Under time':'Over time');timingCls=ok?'var(--green)':'var(--amber)'}
   let h='';
   if(s.topic)h+=`<div class="card" style="gap:6px"><span class="lab">Table Topic</span><p style="margin:0;font-size:17px;line-height:1.45;font-weight:600;color:#F9FAFB">${esc(s.topic)}</p></div>`;
-  if(s.audio){currentAudioUrl=URL.createObjectURL(s.audio);h+=`<div class="card" style="padding:12px"><audio id="r-audio" controls preload="metadata" src="${currentAudioUrl}"></audio></div>`;
+  if(s.audio){currentAudioUrl=URL.createObjectURL(s.video||s.audio);h+=s.video?`<div class="card" style="padding:8px"><video id="r-audio" controls playsinline preload="metadata" src="${currentAudioUrl}" style="width:100%;max-height:60vh;border-radius:12px;background:#000"></video></div>`:`<div class="card" style="padding:12px"><audio id="r-audio" controls preload="metadata" src="${currentAudioUrl}"></audio></div>`;
     const busy=(aiState[s.id]||{}).busy;const hasKey=!!LS('ahc-key');
     const lbl=busy?`Evaluating… <span class="mono" id="eval-timer">${fmtShort((Date.now()-(aiState[s.id].t0||Date.now()))/1000)}</span> · tap to stop`:'Try again';
     h+=`<button class="btn ${AI?'ghost ':''}sm" id="r-reeval"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>${lbl}</button>`}
@@ -717,22 +835,35 @@ function aiCard(s,AI,d,tips){
     takeaway:['End with one clear message','Finish with a single line the audience should remember or act on.']};
   const order=['opening','main_points','transitions','conclusion','takeaway'];
   const weak=order.find(k=>S[k]&&S[k].status==='no')||order.find(k=>S[k]&&S[k].status==='partly');
+  if(AI.body){const BT={eye_contact:['Hold eye contact','Look into the camera, or at one person, for each complete thought before moving on.'],gestures:['Gesture with purpose','Plan 2\u20133 gestures that match key words, and rest your hands at your sides between them.'],posture:['Stand still and tall','Plant your feet shoulder-width apart and stay put unless you move with a purpose.'],expression:['Let your face match your words','Smile at the light moments and let your expression follow the story.']};
+    const bo=['eye_contact','gestures','posture','expression'];const bw=bo.find(k=>AI.body[k]&&AI.body[k].status==='no')||bo.find(k=>AI.body[k]&&AI.body[k].status==='partly');
+    if(bw)tips.splice(tips.length&&tips[0][0]==='Swap fillers for silence'?1:0,0,BT[bw]);}
   if(weak)tips.splice(tips.length&&tips[0][0]==='Swap fillers for silence'?1:0,0,STRUCT_TIPS[weak]);
   return `<div class="card" style="gap:16px">${head}
   ${meter('Pace',Math.round(wpm)+' wpm',(wpm-60)/160*100,37.5,25,['Slow','120–160','Fast'])}
   <div style="display:flex;flex-direction:column;gap:0"><h2 style="margin-bottom:4px">Structure</h2>${row('Opening',S.opening)}${row('Main points'+mpExtra,mp,'')}${pts?`<div style="padding:0 0 8px 76px" class="note">${pts}</div>`:''}${row('Transitions',S.transitions)}${row('Conclusion',S.conclusion)}${row('Takeaway',S.takeaway)}</div>
+  ${AI.body?`<div style="display:flex;flex-direction:column;gap:0"><h2 style="margin-bottom:4px">Body language</h2>${row('Eye contact',AI.body.eye_contact)}${row('Gestures',AI.body.gestures)}${row('Posture',AI.body.posture)}${row('Facial expression',AI.body.expression)}</div>`:''}
   <div style="display:flex;flex-direction:column;gap:8px"><h2>Transcript</h2><div class="transcript">${parts||'<span class="lab">No speech detected.</span>'}</div></div>
   <div class="row"><span class="lab">AI can miss or mis-hear a few fillers.</span>${AI.tookSec?`<span class="lab mono">Took ${fmtShort(AI.tookSec)}</span>`:''}</div></div>`;
 }
 
 /* ---------- library ---------- */
 let filter='all';
-document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{filter=b.dataset.f;document.querySelectorAll('.seg button').forEach(x=>x.classList.toggle('on',x===b));renderLib()}));
+document.querySelectorAll('#v-lib .seg button').forEach(b=>b.addEventListener('click',()=>{filter=b.dataset.f;document.querySelectorAll('#v-lib .seg button').forEach(x=>x.classList.toggle('on',x===b));renderLib()}));
+const WAVE_SVG='<svg width="64" height="28" viewBox="0 0 64 28" aria-hidden="true"><g fill="#F5A524">'+[8,16,24,12,20,6,18,26,10,22,14,8].map((h,i)=>`<rect x="${i*5.4}" y="${(28-h)/2}" width="3" height="${h}" rx="1.5"/>`).join('')+'</g></svg>';
+const CAM_SVG='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F3F4F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3"/></svg>';
+const MIC_SVG='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F3F4F6" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4"/></svg>';
 async function renderLib(){
-  const all=await list();const items=filter==='star'?all.filter(s=>s.starred):all;
+  const all=await list();const items=filter==='star'?all.filter(s=>s.starred):filter==='video'?all.filter(s=>s.video):all;
   $('#lib-count').textContent=all.length?all.length+(all.length===1?' speech':' speeches'):'';
-  if(!items.length){$('#lib-list').innerHTML=`<div class="empty">${filter==='star'?'No starred speeches yet. Tap the star on a report to keep it here.':'No speeches yet. Start one from Practice.'}</div>`;return}
-  $('#lib-list').innerHTML=items.map(s=>{const n=s.ai?(s.ai.fillers||[]).length:s.taps.length;const r=n/Math.max(s.duration/60,0.1);return `<div class="item"><button class="main" data-open="${s.id}"><span class="t">${esc(s.title)}</span>${tagHTML(s)?`<span>${tagHTML(s)}</span>`:''}<span class="lab">${new Date(s.startedAt).toLocaleDateString([], {day:'numeric',month:'short'})} · ${fmtShort(s.duration)} · ${n} fillers (${r.toFixed(1)}/min)${s.audio?' · audio':''}</span></button><button class="star${s.starred?' on':''}" data-star="${s.id}" aria-label="${s.starred?'Unstar':'Star'} ${esc(s.title)}" aria-pressed="${s.starred}">${STAR_SVG(s.starred)}</button><button class="del" data-del="${s.id}" aria-label="Delete ${esc(s.title)}">${TRASH_SVG}</button></div>`}).join('');
+  if(!items.length){$('#lib-list').innerHTML=`<div class="empty">${filter==='star'?'No starred speeches yet. Tap the star on any recording to keep it here.':filter==='video'?'No videos yet. Switch Mode to Video on the Practice screen.':'No speeches yet. Start one from Practice.'}</div>`;return}
+  $('#lib-list').innerHTML='<div class="gal">'+items.map(s=>{const n=s.ai?(s.ai.fillers||[]).length:s.taps.length;const d=new Date(s.startedAt);
+    const media=s.thumb?`<img src="${s.thumb}" alt="">`:`<span class="aud">${s.video?'<span style="font-size:13px">Video</span>':WAVE_SVG+'<span>'+esc(TYPES[s.type]?TYPES[s.type].name:'Speech')+'</span>'}</span>`;
+    return `<div class="tile"><button class="thumb" data-open="${s.id}" aria-label="Open ${esc(s.title)}">${media}<span class="chipd">${d.toLocaleDateString([], {day:'numeric',month:'short'})}</span><span class="chipm">${s.video?CAM_SVG:MIC_SVG}</span><span class="chipt mono">${fmtShort(s.duration)}</span></button>
+    <button class="tstar${s.starred?' on':''}" data-star="${s.id}" aria-label="${s.starred?'Unstar':'Star'} ${esc(s.title)}" aria-pressed="${!!s.starred}">${STAR_SVG(s.starred)}</button>
+    <div class="meta"><button class="tx" data-open="${s.id}"><span class="t">${esc(s.title)}</span><span class="lab">${s.ai||s.taps.length?n+' filler'+(n===1?'':'s'):(s.audio?'Not counted':'No audio')}</span>${tagHTML(s)?`<span>${tagHTML(s)}</span>`:''}</button><button class="tdel" data-del="${s.id}" aria-label="Delete ${esc(s.title)}">${TRASH_SVG}</button></div></div>`}).join('')+'</div>';
+  // fill in missing video thumbnails (older recordings)
+  for(const s of items.filter(x=>x.video&&!x.thumb)){const t=await thumbFromBlob(s.video);if(t){const f=await load(s.id);if(f){f.thumb=t;await save(f)}const img=document.querySelector(`.thumb[data-open="${s.id}"] .aud`);if(img)img.outerHTML=`<img src="${t}" alt="">`}}
 }
 $('#lib-list').addEventListener('click',async e=>{
   const o=e.target.closest('[data-open]'),st=e.target.closest('[data-star]'),dl=e.target.closest('[data-del]');
