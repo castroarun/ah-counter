@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1116">
+<title>Ah Counter</title>
+<meta name="description" content="Toastmasters practice: record your speech and get instant feedback on fillers, pace, pauses and structure.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Ah Counter">
+<meta property="og:url" content="https://ah-counter.vercel.app/">
+<meta property="og:title" content="Ah Counter – Toastmasters practice">
+<meta property="og:description" content="Record your speech and get instant feedback on fillers, pace, pauses and structure.">
+<meta property="og:image" content="https://ah-counter.vercel.app/og.jpg">
+<meta property="og:image:secure_url" content="https://ah-counter.vercel.app/og.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Ah Counter – Toastmasters practice">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ah-counter.vercel.app/og.jpg">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="Ah Counter">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+:root{--bg:#0E1116;--card:#171B22;--line:#262C36;--line2:#333A46;--text:#F3F4F6;--muted:#9CA3AF;--accent:#F5A524;--blue:#60A5FA;--red:#F87171;--green:#86EFAC;--amber:#FDE68A}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+body{min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:480px;margin:0 auto;padding:20px 20px calc(130px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:16px}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.lab{font-size:12px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px}
+h1{font-size:20px;font-weight:600;margin:0}
+h2{font-size:16px;font-weight:600;margin:0}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.btn{height:56px;border-radius:16px;border:none;background:var(--accent);color:#111827;font-size:16px;font-weight:600;width:100%;display:flex;align-items:center;justify-content:center;gap:10px}
+.btn.ghost{background:var(--card);border:1px solid var(--line2);color:var(--text)}
+.btn.sm{height:44px;font-size:14px;border-radius:12px}
+.icon{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;justify-content:center;color:var(--text);flex:none}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;border-radius:999px;padding:3px 8px;white-space:nowrap}
+.tag.ok{background:#14532D;color:#BBF7D0}.tag.wait{background:#262C36;color:#D1D5DB}.tag.bad{background:#7F1D1D;color:#FECACA}
+mark{background:#3A2E12;color:#FCD34D;border-radius:4px;padding:0 3px;font-weight:600}
+.transcript{font-size:15px;line-height:1.7;color:#E5E7EB;max-height:320px;overflow:auto;padding-right:4px}
+.ck{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:#E5E7EB;padding:10px 0;border-top:1px solid var(--line)}
+.ck .s{flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:3px 9px;min-width:56px;text-align:center}
+.s-yes{background:#14532D;color:#BBF7D0}.s-partly{background:#713F12;color:#FDE68A}.s-no{background:#7F1D1D;color:#FECACA}
+.ck .d{display:flex;flex-direction:column;gap:2px}.ck .d span{font-size:13px;color:var(--muted)}
+.err{font-size:13px;color:#FCA5A5;line-height:1.5}
+input[type=text],input[type=password],select{height:46px;border-radius:12px;border:1px solid var(--line2);background:#0E1116;color:var(--text);padding:0 12px;font-size:16px;font-family:inherit;width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#E5E7EB;border:1px solid var(--line2);border-radius:999px;padding:6px 10px;background:transparent}
+.chip b{font-family:'JetBrains Mono',monospace;color:var(--accent)}
+.chip .x{border:none;background:none;color:var(--muted);font-size:16px;padding:0 0 0 2px;line-height:1}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.switch{display:flex;align-items:center;justify-content:space-between;font-size:15px}
+.switch input{width:46px;height:28px;accent-color:var(--accent)}
+.hidden{display:none!important}
+/* live */
+.ringbox{position:relative;width:210px;height:210px;margin:6px auto 0;display:flex;align-items:center;justify-content:center}
+.ringbox svg{position:absolute;inset:0}
+.signals{display:flex;gap:8px;justify-content:center}
+.sig{font-size:12px;font-weight:600;border-radius:999px;padding:6px 10px;background:var(--line);color:#D1D5DB;transition:all .2s}
+.sig.on.g{background:#16A34A;color:#fff}.sig.on.a{background:#D97706;color:#fff}.sig.on.r{background:#DC2626;color:#fff}
+.fb{display:flex;align-items:center;justify-content:space-between;height:68px;padding:0 18px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:#E5E7EB;font-size:16px;font-weight:500;transition:transform .06s,background .15s}
+.fb:active{transform:scale(.97);background:#1F2530}
+.fb .n{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;color:#F9FAFB}
+.fb.flash{background:#2A2414;border-color:var(--accent)}
+.recdot{width:8px;height:8px;border-radius:50%;background:#EF4444;animation:p 1.2s infinite}
+@keyframes p{50%{opacity:.3}}
+/* report */
+.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:2px}
+.stat .v{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:600}
+.meter{display:flex;flex-direction:column;gap:6px}
+.meter .top{display:flex;justify-content:space-between;font-size:14px;color:#E5E7EB}
+.track{position:relative;height:8px;border-radius:4px;background:var(--line)}
+.band{position:absolute;top:0;height:8px;border-radius:4px;background:#2F4A35}
+.dot{position:absolute;top:-4px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:var(--accent);border:3px solid var(--card)}
+.ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.note{font-size:13px;color:#D1D5DB;line-height:1.5}
+.tip{border-left:none;background:#1C2129;border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.5;color:#E5E7EB}
+.tip b{display:block;margin-bottom:2px}
+audio{width:100%;height:44px}
+.jump{border:1px solid var(--line2);background:transparent;color:var(--blue);border-radius:999px;padding:6px 10px;font-size:13px;font-family:'JetBrains Mono',monospace}
+/* library */
+.item{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 8px 12px 16px}
+.item .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;background:none;border:none;color:inherit;text-align:left;padding:0}
+.item .t{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.star{width:44px;height:44px;border:none;background:none;display:flex;align-items:center;justify-content:center;color:#6B7280}
+.star.on{color:var(--accent)}
+.del{width:44px;height:44px;border:none;background:none;display:flex;align-items:center;justify-content:center;color:#6B7280}
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
+.seg button{flex:1;height:36px;border:none;border-radius:9px;background:none;color:var(--muted);font-size:14px;font-weight:600}
+.seg button.on{background:var(--line2);color:var(--text)}
+.empty{text-align:center;color:var(--muted);font-size:14px;padding:40px 10px}
+/* nav */
+nav{position:sticky;top:0;background:rgba(14,17,22,.97);border-bottom:1px solid var(--line);display:flex;justify-content:center;padding-top:env(safe-area-inset-top);z-index:5}
+nav .in{display:flex;max-width:480px;width:100%}
+nav button{flex:1;height:56px;flex-direction:row!important;font-size:14px!important;border:none;background:none;color:var(--muted);font-size:12px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+nav button.on{color:var(--accent)}
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:10;padding:16px}
+.sheet{background:var(--card);border:1px solid var(--line2);border-radius:20px;padding:20px;width:100%;max-width:440px;display:flex;flex-direction:column;gap:14px}
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:#262C36;color:var(--text);padding:10px 16px;border-radius:12px;font-size:14px;z-index:20}
+</style>
+</head>
+<body>
+
+<nav id="nav"><div class="in">
+  <button data-v="setup" class="on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10a7 7 0 0 0 14 0M12 17v5"></path></svg>Practice</button>
+  <button data-v="lib"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>Recordings</button>
+</div></nav>
+
+<!-- SETUP -->
+<section id="v-setup" class="wrap">
+  <div class="row"><div><div class="lab">Toastmasters practice</div><h1>Ah Counter</h1></div></div>
+  <div class="card">
+    <label class="f">Speech title<input type="text" id="s-title" placeholder="e.g. Icebreaker"></label>
+    <label class="f">Speaker<input type="text" id="s-speaker" placeholder="Your name"></label>
+    <label class="f">Speech type
+      <select id="s-type">
+        <option value="tt">Table Topics (1–2 min)</option>
+        <option value="ice">Icebreaker (4–6 min)</option>
+        <option value="std" selected>Prepared speech (5–7 min)</option>
+        <option value="eval">Evaluation (2–3 min)</option>
+        <option value="none">No timing</option>
+      </select>
+    </label>
+    <div class="switch"><span>Record audio for delivery analysis</span><input type="checkbox" id="s-rec" checked aria-label="Record audio"></div>
+  </div>
+  <div class="card hidden" id="tt-card">
+    <div class="row"><h2>Your Table Topic</h2><span class="lab" id="tt-src"></span></div>
+    <p id="tt-topic" style="margin:0;font-size:20px;line-height:1.4;font-weight:600;color:#F9FAFB;min-height:56px"></p>
+    <form id="tt-form" class="row" style="gap:8px">
+      <input type="text" id="tt-theme" placeholder="Theme (optional), e.g. travel" aria-label="Table Topics theme" maxlength="60">
+      <button class="btn sm" id="tt-new" style="width:auto;padding:0 16px;white-space:nowrap">New topic</button>
+    </form>
+    <p class="lab" style="margin:0" id="tt-hint">Leave the theme empty for a random topic.</p>
+  </div>
+  <div class="card">
+    <div class="row"><h2>Filler words to catch</h2><span class="lab">All on</span></div>
+    <p class="note" style="margin:0">The AI listens for all of these in your recording, plus repeated words. Tap × only if you want to stop tracking a word.</p>
+    <div class="chips" id="s-words"></div>
+    <form id="s-addform" class="row" style="gap:8px">
+      <input type="text" id="s-new" placeholder="Add a word, e.g. Basically" aria-label="New filler word">
+      <button class="btn sm" style="width:auto;padding:0 16px">Add</button>
+    </form>
+  </div>
+  <div class="card">
+    <div class="row"><h2>Free AI check (Gemini)</h2><span class="lab" id="k-state">Not set</span></div>
+    <p class="note" style="margin:0">Counts fillers from your recording automatically, writes a transcript, and checks pace and structure. Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:var(--accent)">aistudio.google.com/apikey</a> (no card needed) and paste it here.</p>
+    <form id="k-form" class="row" style="gap:8px">
+      <input type="password" id="k-key" placeholder="Paste Gemini API key" aria-label="Gemini API key" autocomplete="off">
+      <button class="btn sm" style="width:auto;padding:0 16px">Save</button>
+    </form>
+    <p class="lab" style="margin:0">The key stays on this device. On Google's free tier, audio you send may be used to improve Google's products.</p>
+  </div>
+  <button class="btn" id="b-start"><svg width="18" height="18" viewBox="0 0 24 24" fill="#111827" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle></svg>Start</button>
+  <p class="lab" style="text-align:center;margin:0">Recordings stay on this device only.</p>
+</section>
+
+<!-- LIVE -->
+<section id="v-live" class="wrap hidden">
+  <div class="row"><span style="font-weight:600" id="l-title">Speech</span><span class="lab" id="l-type"></span></div>
+  <div class="ringbox">
+    <svg width="210" height="210" viewBox="0 0 210 210" aria-hidden="true"><circle cx="105" cy="105" r="96" fill="none" stroke="#262C36" stroke-width="8"></circle><circle id="l-ring" cx="105" cy="105" r="96" fill="none" stroke="#F5A524" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 603" transform="rotate(-90 105 105)"></circle></svg>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+      <span class="mono" style="font-size:44px;font-weight:600" id="l-time">00:00</span>
+      <span id="l-recstate" style="display:flex;align-items:center;gap:6px;font-size:13px;color:#FCA5A5"><span class="recdot"></span>Recording</span>
+    </div>
+  </div>
+  <div class="signals" id="l-signals"></div>
+  <div class="row" style="padding:0 2px"><span class="lab">Optional: tap to count live</span><span style="font-size:13px;color:#D1D5DB">Total <span class="mono" style="font-weight:600;color:#F9FAFB" id="l-total">0</span> · <span class="mono" id="l-rate">0.0</span>/min</span></div>
+  <div class="grid2" id="l-buttons"></div>
+  <div class="grid2">
+    <button class="btn ghost sm" id="b-undo">Undo last</button>
+    <button class="btn ghost sm" id="b-pause">Pause</button>
+  </div>
+  <button class="btn" id="b-stop"><svg width="16" height="16" viewBox="0 0 24 24" fill="#111827" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2"></rect></svg>Stop &amp; analyse</button>
+  <button class="btn ghost sm" id="b-cancel" style="color:#FCA5A5">Discard</button>
+</section>
+
+<!-- REPORT -->
+<section id="v-report" class="wrap hidden">
+  <div class="row">
+    <button class="icon" id="b-back" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button>
+    <div style="flex:1;min-width:0"><div class="lab" id="r-sub"></div><h1 id="r-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></h1></div>
+    <button class="star" id="r-star" aria-label="Favourite"></button>
+  </div>
+  <div id="r-body"></div>
+</section>
+
+<!-- LIBRARY -->
+<section id="v-lib" class="wrap hidden">
+  <div class="row"><h1>Recordings</h1><span class="lab" id="lib-count"></span></div>
+  <div class="seg" role="tablist"><button class="on" data-f="all">All</button><button data-f="star">Starred</button></div>
+  <div id="lib-list" style="display:flex;flex-direction:column;gap:10px"></div>
+</section>
+
+
+
+<div id="modal" class="modal hidden"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="m-title">
+  <h2 id="m-title"></h2><p class="note" id="m-text" style="margin:0"></p>
+  <div class="grid2"><button class="btn ghost sm" id="m-no">Cancel</button><button class="btn sm" id="m-yes" style="background:#DC2626;color:#fff">Delete</button></div>
+</div></div>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const TYPES={tt:{name:'Table Topics',g:60,a:90,r:120},ice:{name:'Icebreaker',g:240,a:300,r:360},std:{name:'Prepared speech',g:300,a:360,r:420},eval:{name:'Evaluation',g:120,a:150,r:180},none:{name:'Practice',g:0,a:0,r:0}};
+const DEFAULT_WORDS=['Um','Ah','Er','So','Like','You know','Repeat'];
+const fmt=s=>{s=Math.max(0,Math.round(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+const fmtShort=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(m){const d=document.createElement('div');d.className='toast';d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),2200)}
+const STAR_SVG=on=>`<svg width="24" height="24" viewBox="0 0 24 24" fill="${on?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.8l2.8 5.7 6.3.9-4.5 4.4 1 6.3L12 17.2l-5.6 2.9 1-6.3L2.9 9.4l6.3-.9z"></path></svg>`;
+const TRASH_SVG=`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path></svg>`;
+
+/* ---------- storage (IndexedDB) ---------- */
+let dbp=null;
+function db(){if(dbp)return dbp;dbp=new Promise((res,rej)=>{try{const r=indexedDB.open('ahcounter',1);r.onupgradeneeded=()=>r.result.createObjectStore('sessions',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}});return dbp}
+async function tx(mode,fn){const d=await db();return new Promise((res,rej)=>{const t=d.transaction('sessions',mode);const st=t.objectStore('sessions');const out=fn(st);t.oncomplete=()=>res(out&&out.result!==undefined?out.result:undefined);t.onerror=()=>rej(t.error)})}
+const put=s=>tx('readwrite',st=>st.put(s));
+const getOne=id=>tx('readonly',st=>st.get(id));
+const del=id=>tx('readwrite',st=>st.delete(id));
+const getAll=()=>tx('readonly',st=>st.getAll());
+const memStore=new Map(); // fallback if IndexedDB unavailable
+async function save(s){try{await put(s)}catch(e){memStore.set(s.id,s);toast('Could not save permanently on this browser')}}
+async function load(id){try{return (await getOne(id))||memStore.get(id)}catch(e){return memStore.get(id)}}
+async function list(){let a=[];try{a=await getAll()}catch(e){}for(const v of memStore.values())if(!a.find(x=>x.id===v.id))a.push(v);return a.sort((x,y)=>y.startedAt-x.startedAt)}
+async function remove(id){memStore.delete(id);try{await del(id)}catch(e){}}
+
+/* ---------- words ---------- */
+let words;
+try{words=JSON.parse(localStorage.getItem('ahc-words'))}catch(e){}
+if(!Array.isArray(words)||!words.length)words=DEFAULT_WORDS.slice();
+function saveWords(){try{localStorage.setItem('ahc-words',JSON.stringify(words))}catch(e){}}
+function renderWords(){$('#s-words').innerHTML=words.map((w,i)=>`<span class="chip">${esc(w)}<button class="x" data-i="${i}" aria-label="Remove ${esc(w)}">×</button></span>`).join('')}
+$('#s-words').addEventListener('click',e=>{const b=e.target.closest('.x');if(!b)return;if(words.length<=1){toast('Keep at least one word');return}words.splice(+b.dataset.i,1);saveWords();renderWords()});
+$('#s-addform').addEventListener('submit',e=>{e.preventDefault();const v=$('#s-new').value.trim();if(!v)return;if(words.some(w=>w.toLowerCase()===v.toLowerCase())){toast('Already in the list');return}if(words.length>=10){toast('Up to 10 words');return}words.push(v.slice(0,20));$('#s-new').value='';saveWords();renderWords()});
+try{const p=JSON.parse(localStorage.getItem('ahc-prefs')||'{}');if(p.speaker)$('#s-speaker').value=p.speaker;if(p.type)$('#s-type').value=p.type;if(p.rec===false)$('#s-rec').checked=false}catch(e){}
+
+/* ---------- Gemini key ---------- */
+const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}};
+function keyUI(){const k=LS('ahc-key');$('#k-state').textContent=k?'Key saved ✓':'Not set';$('#k-key').value='';$('#k-key').placeholder=k?'Key saved — paste to replace':'Paste Gemini API key'}
+$('#k-form').addEventListener('submit',e=>{e.preventDefault();const v=$('#k-key').value.trim();if(!v){if(LS('ahc-key')){LS('ahc-key',null);LS('ahc-model',null);toast('Key removed')}keyUI();return}LS('ahc-key',v);LS('ahc-model',null);keyUI();toast('Key saved')});
+keyUI();
+
+/* ---------- Gemini AI ---------- */
+const API='https://generativelanguage.googleapis.com/v1beta';
+async function pickModels(key,signal){
+  const ac=new AbortController();const tm=setTimeout(()=>ac.abort(),20000);const lk=()=>ac.abort();if(signal)signal.addEventListener('abort',lk);
+  let r;try{r=await fetch(API+'/models?pageSize=200',{headers:{'x-goog-api-key':key},signal:ac.signal})}finally{clearTimeout(tm);if(signal)signal.removeEventListener('abort',lk)}
+  if(!r.ok){const t=await r.text();throw new Error(r.status===400||r.status===403?'Gemini rejected the key. Check it was copied fully.':'Could not reach Gemini ('+r.status+'). '+t.slice(0,120))}
+  const j=await r.json();
+  const ms=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>m.name.replace('models/',''))
+    .filter(n=>/^gemini-/.test(n)&&/flash/.test(n)&&!/(image|tts|live|embed|native-audio|thinking|computer|robotics|transcribe|exp)/.test(n));
+  const ver=n=>{const m=n.match(/gemini-(\d+(?:\.\d+)?)/);return m?parseFloat(m[1]):0};
+  ms.sort((a,b)=>(/lite/.test(a)-/lite/.test(b))||(/preview/.test(a)-/preview/.test(b))||(ver(b)-ver(a)));
+  return ms;
+}
+function blobToB64(b){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(',')[1]);fr.onerror=()=>rej(fr.error);fr.readAsDataURL(b)})}
+async function wavFrom(blob,forceSR){
+  const buf=await blob.arrayBuffer();const AC=window.AudioContext||window.webkitAudioContext;const ac=new AC();
+  let dec;try{dec=await new Promise((res,rej)=>{const p=ac.decodeAudioData(buf,res,rej);if(p&&p.then)p.then(res,rej)})}finally{try{ac.close()}catch(e){}}
+  const SR=forceSR||(dec.duration>420?12000:16000);const off=new (window.OfflineAudioContext||window.webkitOfflineAudioContext)(1,Math.ceil(dec.duration*SR),SR);
+  const src=off.createBufferSource();src.buffer=dec;src.connect(off.destination);src.start();const x=(await off.startRendering()).getChannelData(0);
+  const ab=new ArrayBuffer(44+x.length*2),v=new DataView(ab);const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  ws(0,'RIFF');v.setUint32(4,36+x.length*2,true);ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,SR,true);v.setUint32(28,SR*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,x.length*2,true);
+  for(let i=0;i<x.length;i++){const s=Math.max(-1,Math.min(1,x[i]));v.setInt16(44+i*2,s<0?s*0x8000:s*0x7FFF,true)}
+  return new Blob([ab],{type:'audio/wav'});
+}
+const RULES_VERSION='v3';
+const PINNED_MODELS=['gemini-3.5-flash','gemini-3.5-flash-lite','gemini-3.8-flash','gemini-3.1-flash-lite'];
+function buildPrompt(s){
+  return `You are the Ah-Counter for a Toastmasters club. Listen to this speech recording and follow these rules exactly.
+
+PART A: TRANSCRIPT
+1. Transcribe VERBATIM. Keep every filler and disfluency exactly as spoken: um, uh, ah, er, hmm, and filler uses of "like", "so", "you know", "basically", "actually", "I mean", "right", "okay", "well". Keep repeated words and false starts ("I I", "the the"). Also treat these words as fillers when used as fillers: ${s.words.filter(w=>w.toLowerCase()!=='repeat').join(', ')}. Never clean up grammar or remove anything.
+2. Wrap each filler or repetition in double square brackets: [[um]], [[like]], [[I I]]. Mark "like", "so", "right", "actually", "well", "okay" ONLY when they add no meaning to the sentence. "So" at the start of a sentence counts as a filler. "I'd like tea" is not a filler.
+3. List every bracketed item in "fillers" in the order spoken, with approximate seconds from the start. The list must match the brackets one to one.
+4. word_count = all spoken words, NOT counting fillers or repeated words.
+
+${s.topic?`CONTEXT: This is a Table Topics answer (impromptu, 1 to 2 minutes) to the question: "${s.topic}". For the opening check, the topic is clear if the speaker addresses this question. Short answers are expected, so 2 main points is enough for main_points "yes".
+
+`:''}PART B: STRUCTURE (judge ONLY these five checks, using ONLY these rules)
+Do not judge content quality, humour, facts, opinions, grammar or vocabulary. Do not give advice.
+- opening: "yes" if, within the first 30 seconds, the speaker uses an attention device (a question to the audience, a short story, a quote, a striking fact or number, or a vivid image) AND the topic becomes clear. "partly" if only one of those two happens. "no" if neither happens (for example it starts with "this is a test", an apology, or a plain greeting and nothing else).
+- main_points: count distinct main points (separate ideas, lessons, reasons or steps the speaker develops). "yes" if 2 to 4 points that are each clearly identifiable. "partly" if only 1 point, more than 4, or points that blur together. "no" if no identifiable point.
+- transitions: "yes" if there is a clear verbal bridge before EVERY main point after the first ("first… second…", "that brings me to…", "my next lesson…"). "partly" if some points have a bridge and some do not. "no" if none do, or there are fewer than 2 points.
+- conclusion: "yes" if the speaker signals the end AND recaps the points or ties back to the opening. "partly" if only one of those. "no" if the speech just stops, or ends only with "that's it" / "thank you".
+- takeaway: "yes" if the last part states one clear message, lesson or call to action. "partly" if a message is only implied. "no" if there is none.
+For each check write "note": ONE short factual sentence describing what the speaker did, addressed as "you" (for example "You opened by asking the audience a question."). Observation only, no advice, no praise, no criticism of content.
+
+Return ONLY JSON matching the schema. If there is no speech, return an empty transcript, an empty fillers list and "no" for every check.`;
+}
+const SCHEMA=(()=>{const chk={type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no']},note:{type:'STRING'}},required:['status','note']};
+  return {type:'OBJECT',properties:{transcript:{type:'STRING'},word_count:{type:'INTEGER'},
+  fillers:{type:'ARRAY',items:{type:'OBJECT',properties:{word:{type:'STRING'},type:{type:'STRING',enum:['filler','repeat']},time_sec:{type:'NUMBER'}},required:['word','type','time_sec']}},
+  structure:{type:'OBJECT',properties:{opening:chk,main_points:{type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no']},count:{type:'INTEGER'},points:{type:'ARRAY',items:{type:'STRING'}},note:{type:'STRING'}},required:['status','count','points','note']},transitions:chk,conclusion:chk,takeaway:chk},required:['opening','main_points','transitions','conclusion','takeaway']}},
+  required:['transcript','word_count','fillers','structure']}})();
+async function callGemini(model,key,mime,b64,prompt,opt,signal){
+  opt=opt||{schema:true,thinking:true};
+  const gc={temperature:0,topP:1,seed:7,responseMimeType:'application/json'};
+  if(opt.schema)gc.responseSchema=SCHEMA;
+  if(opt.thinking)gc.thinkingConfig=/^gemini-2\.5/.test(model)?{thinkingBudget:0}:{thinkingLevel:'minimal'};
+  const body={contents:[{role:'user',parts:[{inline_data:{mime_type:mime,data:b64}},{text:prompt}]}],generationConfig:gc};
+  const ac=new AbortController();const tm=setTimeout(()=>ac.abort(),45000);const lk=()=>ac.abort();if(signal)signal.addEventListener('abort',lk);
+  let r,t;
+  try{r=await fetch(`${API}/models/${model}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body),signal:ac.signal});t=await r.text()}
+  catch(e){if(signal&&signal.aborted)throw new Error('ABORTED');const te=new TypeError(ac.signal.aborted?'timeout':String(e.message||e));te.timeout=ac.signal.aborted;throw te}
+  finally{clearTimeout(tm);if(signal)signal.removeEventListener('abort',lk)}
+  if(!r.ok){
+    if(r.status===400&&opt.thinking&&/thinking/i.test(t))return callGemini(model,key,mime,b64,prompt,{...opt,thinking:false},signal);
+    if(r.status===400&&opt.schema&&/schema|seed|generation_?config/i.test(t))return callGemini(model,key,mime,b64,prompt,{...opt,schema:false},signal);
+    const e=new Error(t.slice(0,300));e.status=r.status;throw e}
+  const j=JSON.parse(t);const txt=((j.candidates||[])[0]?.content?.parts||[]).filter(p=>!p.thought).map(p=>p.text||'').join('');
+  if(!txt){const e=new Error('Empty answer'+(j.promptFeedback?': '+JSON.stringify(j.promptFeedback):''));e.status=500;throw e}
+  const clean=txt.replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'');
+  return JSON.parse(clean.slice(clean.indexOf('{'),clean.lastIndexOf('}')+1));
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mb=n=>(n/1048576).toFixed(1)+' MB';
+async function runAI(s,onStep,signal){
+  const key=LS('ahc-key');if(!key)throw new Error('NOKEY');
+  if(!s.audio)throw new Error('No audio was recorded for this speech.');
+  if(!navigator.onLine)throw new Error('You seem to be offline. Connect to the internet and tap Try again.');
+  const origMime=(s.mime||s.audio.type||'audio/webm').split(';')[0].trim();
+  // 1st choice: the small compressed recording as-is. 2nd: a compact 8 kHz WAV if Gemini rejects the format.
+  const variants=[{mime:origMime,blob:()=>s.audio}];
+  if(!/wav/.test(origMime))variants.push({mime:'audio/wav',blob:()=>wavFrom(s.audio,8000)});
+  const cache={};
+  const payload=async i=>{if(!cache[i]){onStep(i===0?'Preparing audio…':'Converting audio…');const bl=await variants[i].blob();if(bl.size>18*1024*1024)throw new Error('Recording is too long for the free AI check (about 9 minutes max).');cache[i]={mime:variants[i].mime,b64:await blobToB64(bl),size:bl.size}}return cache[i]};
+  onStep('Finding a free Gemini model…');
+  let avail;try{avail=await pickModels(key,signal)}catch(e){if(signal&&signal.aborted)throw new Error('ABORTED');if(e instanceof TypeError||e.name==='AbortError')throw new Error('Could not connect to Google. Check your internet and tap Try again.');throw e}
+  const models=[...PINNED_MODELS.filter(m=>avail.includes(m)),...avail.filter(m=>!PINNED_MODELS.includes(m))].slice(0,4);
+  if(!models.length)throw new Error('No suitable Gemini model is available for this key.');
+  const T0=performance.now();let last=null,vi=0,netFails=0;const tries=[];let wasHidden=document.hidden;const onVis=()=>{if(document.hidden)wasHidden=true};document.addEventListener('visibilitychange',onVis);
+  try{
+  for(let mi=0;mi<models.length;){
+    const m=models[mi];const p=await payload(vi);
+    onStep(`Sending ${mb(p.size)} to ${m}… keep this screen open`);
+    const ta=performance.now();
+    try{if(signal&&signal.aborted)throw new Error('ABORTED');const out=await callGemini(m,key,p.mime,p.b64,buildPrompt(s),null,signal);out.model=m;out.rules=RULES_VERSION;out.at=Date.now();return out}
+    catch(e){
+      last=e;if(e.message==='ABORTED')throw e;
+      if(e.status===400&&/API key/i.test(e.message))throw new Error('Gemini rejected the key.');
+      if(e instanceof TypeError){ // network-level failure: retry, then try the other format
+        netFails++;tries.push(((performance.now()-ta)/1000));
+        if(e.timeout&&!wasHidden&&(performance.now()-T0)>60000)throw new Error(`Google didn't reply within ${fmtShort((performance.now()-T0)/1000)}. Your connection may be too slow right now, or Google is busy. Try on Wi-Fi in a minute and tap Try again. [Details: ${tries.length} tries · ${browserName()} · ${mb(p.size)}]`);
+        if(netFails>=4||(performance.now()-T0)>80000)throw new Error(netMessage(p.size,tries,wasHidden,p.mime));
+        if(netFails===2&&vi<variants.length-1&&cache[vi].size>2*1024*1024)vi++;
+        await sleep(1500*netFails);continue;
+      }
+      if(e.status===400&&vi<variants.length-1){vi++;continue} // format not accepted: send WAV instead
+      if([404,429,500,503,403].includes(e.status)||e instanceof SyntaxError){mi++;continue}
+      break;
+    }
+  }
+  if(last&&last.status===429)throw new Error('Free-tier limit reached for now. Wait a minute and tap Try again.');
+  throw new Error('Gemini could not process this recording. '+(last?String(last.message).slice(0,160):''));
+  }finally{document.removeEventListener('visibilitychange',onVis)}
+}
+function browserName(){const u=navigator.userAgent;if(/WhatsApp/i.test(u))return 'WhatsApp in-app browser';if(/Instagram/i.test(u))return 'Instagram in-app browser';if(/FBAN|FBAV/i.test(u))return 'Facebook in-app browser';if(/; wv\)/.test(u))return 'an in-app browser';if(/SamsungBrowser/i.test(u))return 'Samsung Internet';if(/EdgA|Edg\//.test(u))return 'Edge';if(/CriOS|Chrome\//.test(u))return 'Chrome';if(/Safari/.test(u))return 'Safari';return 'this browser'}
+function netMessage(size,tries,hidden,mime){
+  const fast=tries.every(t=>t<2),avg=tries.reduce((a,b)=>a+b,0)/tries.length,br=browserName();
+  let why;
+  if(hidden)why='The screen was locked or you switched apps while it was sending, so the phone cut the connection. Keep this screen open until it finishes, then tap Try again.';
+  else if(/in-app/.test(br))why=`You're in the ${br}, which often blocks this. Open the link in Chrome or Safari instead and tap Try again.`;
+  else if(fast)why='The phone blocked the request straight away. This is usually an ad-blocker, a "data saver" setting, or a Private DNS / VPN app on the phone. Turn those off for this page (or try Wi-Fi) and tap Try again.';
+  else why=`The connection dropped after about ${Math.round(avg)} seconds each time. Try on Wi-Fi and tap Try again.`;
+  return `Couldn't send the recording (${mb(size)}) to Google. ${why} [Details: ${tries.length} tries, failed after ${tries.map(t=>t.toFixed(1)+'s').join(', ')} · ${br} · ${mime}]`;
+}
+function aiFillerGroups(ai){const g={};for(const f of ai.fillers||[]){const k=f.type==='repeat'?'Repeat':(f.word||'').trim().toLowerCase().replace(/^./,c=>c.toUpperCase());if(!k)continue;g[k]=(g[k]||0)+1}return Object.entries(g).sort((a,b)=>b[1]-a[1])}
+
+/* ---------- Table Topics ---------- */
+const TOPICS={
+ 'Personal':["What's something you changed your mind about recently?","Describe a day you'd love to live again.","What's a skill you wish you had learned earlier?","Who taught you something without meaning to?","What's the best advice you ignored?","What does a perfect Sunday look like for you?","Tell us about a small win you're proud of.","What's a habit you're trying to build right now?","What is one thing people often get wrong about you?","Describe a moment you felt completely out of your depth.","What would your younger self be surprised to learn about you today?","What's a risk you're glad you took?"],
+ 'Opinion':["Is social media making us more or less connected?","Should working from home be the default?","Is failure overrated?","Are we too busy to be happy?","Should schools teach public speaking?","Is it better to be a specialist or a generalist?","Should children be paid for doing chores?","Is it ever okay to tell a white lie?","Are exams the best way to measure learning?","Should every adult learn to cook?","Is ambition always a good thing?","Do we rely too much on our phones?"],
+ 'Hypothetical':["If you could have dinner with your 10-year-old self, what would you say?","You get one extra hour every day. How do you use it?","You can remove one rule in your city. Which one?","You're given one crore rupees to spend on others. What do you do?","If you could master any language overnight, which would you pick?","You can swap jobs with anyone for a week. Who and why?","If your life had a theme song, what would it be?","You can only keep three apps on your phone. Which ones?","If you could add one subject to every school, what would it be?","You wake up as the mayor tomorrow. What's your first decision?","If you could relive one year of your life, which one?","You can send one message to the whole world. What does it say?"],
+ 'Objects and ideas':["An umbrella.","The colour yellow.","Second chances.","A locked door.","The last page.","An old photograph.","A cup of tea.","Footprints in the sand.","An empty chair.","The sound of rain.","A ticket to anywhere.","A broken watch."],
+ 'Work and leadership':["What makes a great boss?","Describe the best team you've ever been part of.","How do you handle a deadline you know you'll miss?","What's the most useful thing you learned in your first job?","Is it better to lead from the front or from behind?","How do you give difficult feedback?","What makes a meeting worth attending?","Tell us about a mistake at work that taught you something.","What's one thing every new manager should know?","Would you rather be respected or liked at work?"],
+ 'Travel':["Describe a place that surprised you.","Tell us about a trip that didn't go to plan.","Mountains or beaches, and why?","What's the best meal you've had while travelling?","If you could live in any city for a year, which one?","What's one thing you always pack?","Describe the kindest stranger you met on a journey.","Is it better to travel alone or with friends?","A train journey you remember.","Where would you take a visitor to show them the real side of your city?"],
+ 'Food':["What dish reminds you of home?","Describe the best meal you've ever had.","If you could eat only one cuisine forever, which would it be?","Who is the best cook you know, and why?","What food did you hate as a child but love now?","Street food or fine dining?","Describe a festival through its food.","What's a recipe everyone should learn?"],
+ 'Family and friends':["Who in your family are you most like?","What's a family tradition you'd like to keep alive?","Describe a friendship that changed you.","What did your grandparents teach you?","What makes someone a true friend?","Tell us about a family holiday you remember.","What's the best gift you've ever received?","How has your idea of family changed over the years?"],
+ 'Technology':["Will AI make our jobs easier or harder?","What invention do you wish existed?","What's one piece of technology you couldn't live without?","Should children have smartphones?","Is online learning as good as classroom learning?","What was life like before the internet?","Would you ride in a self-driving car?","What's the best thing technology has done for your family?"],
+ 'Festivals and culture':["Your favourite festival memory.","What does a festival mean to you beyond the celebrations?","Describe a wedding you'll never forget.","Which tradition would you explain to someone from abroad?","How have festivals changed since you were a child?","What's a local custom that makes you proud?","Describe your city during its biggest festival."],
+ 'Sports and health':["What sport would you love to be great at?","Tell us about a game you'll never forget.","Morning workout or evening walk?","What does being healthy mean to you?","Who is a sportsperson you admire, and why?","What have you learned from losing?","Is watching sport as good as playing it?","How do you deal with stress?"],
+ 'Nature and environment':["Describe your favourite place in nature.","What's one thing you do for the environment?","Should cities have more trees or more parking?","Tell us about a sunrise or sunset you remember.","If you could protect one natural wonder, which one?","What can a garden teach us?","Is it too late to save the planet?"],
+ 'Community and club life':["What makes a neighbourhood feel like a community?","What would you teach a newcomer to our area?","Why should someone join Toastmasters?","What's the best speech you've ever heard?","Describe a volunteer experience that stayed with you.","What would make our city a better place to live?","Who is an unsung hero in your community?","What did your first Toastmasters meeting feel like?"],
+ 'Movies and books':["A film that changed how you see something.","A villain you secretly agree with.","The movie you'd recommend to a stranger, and why.","A book you'd give every teenager.","Which fictional world would you live in?","A character you relate to.","Is the book always better than the movie?","Describe a scene you can't forget."],
+ 'Learning and growth':["What's the hardest thing you've ever learned?","Who is the best teacher you've had?","What did failure teach you?","What's something you're learning right now?","Is it ever too late to start something new?","What's the most important lesson school didn't teach you?","Describe a moment you surprised yourself.","What would you like to be remembered for?"]
+};
+const TT_ALL=Object.entries(TOPICS).flatMap(([c,list])=>list.map(t=>({c,t})));
+let ttCurrent=null,ttQueue={},ttBusy=false;
+function ttRecent(){try{return JSON.parse(localStorage.getItem('ahc-tt-recent')||'[]')}catch(e){return[]}}
+function ttRemember(t){const r=ttRecent().filter(x=>x!==t);r.unshift(t);LS('ahc-tt-recent',JSON.stringify(r.slice(0,60)))}
+function ttFromBank(theme){
+  const recent=new Set(ttRecent());const th=(theme||'').toLowerCase().trim();
+  let pool=TT_ALL;let matched=false;
+  if(th){const words=th.split(/[^a-z]+/).filter(w=>w.length>2);
+    const m=TT_ALL.filter(x=>words.some(w=>x.c.toLowerCase().includes(w)||x.t.toLowerCase().includes(w)||(w.endsWith('s')&&x.t.toLowerCase().includes(w.slice(0,-1)))));
+    if(m.length){pool=m;matched=true}}
+  const fresh=pool.filter(x=>!recent.has(x.t));const pick=(fresh.length?fresh:pool)[Math.floor(Math.random()*(fresh.length?fresh:pool).length)];
+  return {...pick,matched};
+}
+async function ttFromAI(theme){
+  const key=LS('ahc-key');if(!key)throw new Error('nokey');
+  const q=ttQueue[theme.toLowerCase()];if(q&&q.length)return {c:theme,t:q.shift(),ai:true};
+  const avail=await pickModels(key);const models=[...PINNED_MODELS.filter(m=>avail.includes(m)),...avail.filter(m=>!PINNED_MODELS.includes(m))].slice(0,3);
+  const prompt=`Write 8 Table Topics questions for a Toastmasters club meeting on the theme "${theme}". Each must be one short, open-ended question or prompt (under 20 words) that anyone can answer for 1 to 2 minutes from personal experience or opinion, with no special knowledge needed. Keep them friendly, varied, and suitable for all ages. Avoid politics, religion and anything sensitive. Return only a JSON array of strings.`;
+  for(const m of models){
+    const ac=new AbortController();const tm=setTimeout(()=>ac.abort(),20000);
+    try{
+      const gc={temperature:1,responseMimeType:'application/json',responseSchema:{type:'ARRAY',items:{type:'STRING'}}};
+      if(!/^gemini-2\.5/.test(m))gc.thinkingConfig={thinkingLevel:'minimal'};
+      const r=await fetch(`${API}/models/${m}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:gc}),signal:ac.signal});
+      if(!r.ok)continue;
+      const j=await r.json();const txt=((j.candidates||[])[0]?.content?.parts||[]).filter(p=>!p.thought).map(p=>p.text||'').join('');
+      let arr=JSON.parse(txt.slice(txt.indexOf('['),txt.lastIndexOf(']')+1)).map(x=>String(x).trim()).filter(x=>x&&x.length<200);
+      if(!arr.length)continue;
+      const recent=new Set(ttRecent());arr=arr.filter(x=>!recent.has(x));
+      ttQueue[theme.toLowerCase()]=arr.slice(1);return {c:theme,t:arr[0],ai:true};
+    }catch(e){}finally{clearTimeout(tm)}
+  }
+  throw new Error('ai failed');
+}
+async function ttNew(){
+  if(ttBusy)return;const theme=$('#tt-theme').value.trim();
+  const btn=$('#tt-new');
+  if(theme&&LS('ahc-key')){
+    ttBusy=true;btn.textContent='Finding…';btn.disabled=true;$('#tt-topic').style.opacity='.5';
+    try{ttCurrent=await ttFromAI(theme);$('#tt-src').textContent='AI · '+theme}
+    catch(e){ttCurrent=ttFromBank(theme);$('#tt-src').textContent=ttCurrent.matched?'Topic bank · '+ttCurrent.c:'Topic bank · random';toast('Couldn’t reach the AI, picked from the topic bank')}
+    finally{ttBusy=false;btn.textContent='New topic';btn.disabled=false;$('#tt-topic').style.opacity='1'}
+  }else{
+    ttCurrent=ttFromBank(theme);
+    $('#tt-src').textContent=theme&&!ttCurrent.matched?'Random (no match)':'Topic bank · '+ttCurrent.c;
+    if(theme&&!ttCurrent.matched)toast(LS('ahc-key')?'No match, here’s a random topic':'Add the free Gemini key for topics on any theme');
+  }
+  ttRemember(ttCurrent.t);$('#tt-topic').textContent=ttCurrent.t;
+}
+$('#tt-form').addEventListener('submit',e=>{e.preventDefault();ttNew()});
+function ttShowCard(){const on=$('#s-type').value==='tt';$('#tt-card').classList.toggle('hidden',!on);if(on&&!ttCurrent)ttNew()}
+$('#s-type').addEventListener('change',ttShowCard);
+
+/* ---------- views ---------- */
+let current='setup';
+function show(v){current=v;if(v==='setup')setTimeout(ttShowCard,0);for(const id of['setup','live','report','lib'])$('#v-'+id).classList.toggle('hidden',id!==v);$('#nav').classList.toggle('hidden',v==='live');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v||(v==='report'&&b.dataset.v==='lib')));window.scrollTo(0,0);if(v==='lib')renderLib()}
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>show(b.dataset.v)));
+
+/* ---------- live session ---------- */
+let S=null,timerId=null,rec=null,chunks=[],stream=null,wake=null,lastSig='';
+function elapsed(){if(!S)return 0;return (S.accum+(S.running?(performance.now()-S.t0):0))/1000}
+$('#b-start').addEventListener('click',async()=>{
+  const type=$('#s-type').value,T=TYPES[type];
+  const title=$('#s-title').value.trim()||T.name;
+  const speaker=$('#s-speaker').value.trim();
+  try{localStorage.setItem('ahc-prefs',JSON.stringify({speaker,type,rec:$('#s-rec').checked}))}catch(e){}
+  const topic=type==='tt'&&ttCurrent?ttCurrent.t:'';
+  if(type==='tt'){ttCurrent=null;$('#tt-topic').textContent=''}
+  S={id:'s'+Date.now(),title,speaker,type,topic,timing:{g:T.g,a:T.a,r:T.r},words:words.slice(),counts:Object.fromEntries(words.map(w=>[w,0])),taps:[],startedAt:Date.now(),accum:0,t0:performance.now(),running:true,starred:false,audio:null,mime:'',analysis:null};
+  chunks=[];rec=null;stream=null;
+  $('#l-recstate').classList.add('hidden');
+  if($('#s-rec').checked){
+    try{
+      stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+      const mt=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))||'';
+      rec=new MediaRecorder(stream,mt?{mimeType:mt}:undefined);
+      rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+      rec.start(1000);
+      $('#l-recstate').classList.remove('hidden');
+    }catch(e){toast('Microphone not available — counting only');}
+  }
+  S.t0=performance.now();
+  try{wake=await navigator.wakeLock.request('screen')}catch(e){wake=null}
+  $('#l-title').textContent=title;{let el=document.getElementById('l-topic');if(!el){el=document.createElement('p');el.id='l-topic';el.style.cssText='margin:0;font-size:18px;line-height:1.4;font-weight:600;color:#F9FAFB;text-align:center';$('.ringbox').before(el)}el.textContent=topic?'“'+topic+'”':'';el.classList.toggle('hidden',!topic)}$('#l-type').textContent=TYPES[type].name+(speaker?' · '+speaker:'');
+  const sg=S.timing;$('#l-signals').innerHTML=sg.r?`<span class="sig g">Green ${fmtShort(sg.g)}</span><span class="sig a">Amber ${fmtShort(sg.a)}</span><span class="sig r">Red ${fmtShort(sg.r)}</span>`:'';
+  $('#l-buttons').innerHTML=S.words.map(w=>`<button class="fb" data-w="${esc(w)}"><span>${esc(w)}</span><span class="n">0</span></button>`).join('');
+  $('#b-pause').textContent='Pause';lastSig='';
+  updateLive();show('live');
+  timerId=setInterval(updateLive,250);
+});
+$('#l-buttons').addEventListener('click',e=>{const b=e.target.closest('.fb');if(!b||!S)return;const w=b.dataset.w;S.counts[w]++;S.taps.push({w,t:elapsed()});b.querySelector('.n').textContent=S.counts[w];b.classList.add('flash');setTimeout(()=>b.classList.remove('flash'),180);try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}updateLive()});
+$('#b-undo').addEventListener('click',()=>{if(!S||!S.taps.length)return;const t=S.taps.pop();S.counts[t.w]--;const b=[...document.querySelectorAll('#l-buttons .fb')].find(x=>x.dataset.w===t.w);if(b)b.querySelector('.n').textContent=S.counts[t.w];toast('Removed one “'+t.w+'”');updateLive()});
+$('#b-pause').addEventListener('click',()=>{if(!S)return;if(S.running){S.accum+=performance.now()-S.t0;S.running=false;if(rec&&rec.state==='recording')rec.pause();$('#b-pause').textContent='Resume'}else{S.t0=performance.now();S.running=true;if(rec&&rec.state==='paused')rec.resume();$('#b-pause').textContent='Pause'}});
+function updateLive(){if(!S)return;const t=elapsed();$('#l-time').textContent=fmt(t);const total=S.taps.length;$('#l-total').textContent=total;$('#l-rate').textContent=t>5?(total/(t/60)).toFixed(1):'0.0';
+  const r=S.timing.r||Math.max(60,Math.ceil(t/60)*60);const frac=Math.min(1,t/r);$('#l-ring').setAttribute('stroke-dasharray',(603*frac).toFixed(1)+' 603');
+  let sig='';if(S.timing.r){if(t>=S.timing.r)sig='r';else if(t>=S.timing.a)sig='a';else if(t>=S.timing.g)sig='g'}
+  document.querySelectorAll('#l-signals .sig').forEach(el=>el.classList.toggle('on',el.classList.contains(sig)));
+  $('#l-ring').setAttribute('stroke',sig==='r'?'#EF4444':sig==='a'?'#F59E0B':sig==='g'?'#22C55E':'#F5A524');
+  if(sig&&sig!==lastSig){lastSig=sig;try{navigator.vibrate&&navigator.vibrate([60,60,60])}catch(e){}}
+}
+function stopMedia(){return new Promise(res=>{if(!rec||rec.state==='inactive'){res();return}rec.onstop=()=>res();try{rec.stop()}catch(e){res()}}).then(()=>{if(stream)stream.getTracks().forEach(t=>t.stop());try{wake&&wake.release()}catch(e){}wake=null})}
+$('#b-cancel').addEventListener('click',()=>confirmBox('Discard this speech?','The count and recording will be lost.','Discard',async()=>{clearInterval(timerId);await stopMedia();S=null;show('setup')}));
+$('#b-stop').addEventListener('click',async()=>{
+  if(!S)return;clearInterval(timerId);
+  if(S.running){S.accum+=performance.now()-S.t0;S.running=false}
+  await stopMedia();
+  const s=S;S=null;
+  s.duration=s.accum/1000;delete s.accum;delete s.t0;delete s.running;
+  if(chunks.length){s.mime=chunks[0].type||(rec&&rec.mimeType)||'audio/webm';s.audio=new Blob(chunks,{type:s.mime})}
+  await save(s);
+  openReport(s.id,true);
+});
+
+/* ---------- audio analysis (on device) ---------- */
+async function analyse(blob){
+  const buf=await blob.arrayBuffer();
+  const AC=window.AudioContext||window.webkitAudioContext;const ac=new AC();
+  let decoded;try{decoded=await new Promise((res,rej)=>{const p=ac.decodeAudioData(buf,res,rej);if(p&&p.then)p.then(res,rej)})}finally{try{ac.close()}catch(e){}}
+  const SR=16000;const len=Math.max(1,Math.ceil(decoded.duration*SR));
+  const off=new (window.OfflineAudioContext||window.webkitOfflineAudioContext)(1,len,SR);
+  const src=off.createBufferSource();src.buffer=decoded;src.connect(off.destination);src.start();
+  const rendered=await off.startRendering();const x=rendered.getChannelData(0);
+  const dur=x.length/SR;
+  // frame energy, 20 ms
+  const F=320;const nF=Math.floor(x.length/F);const db=new Float32Array(nF);
+  for(let i=0;i<nF;i++){let s=0;for(let j=i*F;j<(i+1)*F;j++)s+=x[j]*x[j];db[i]=10*Math.log10(s/F+1e-10)}
+  const sorted=Array.from(db).sort((a,b)=>a-b);const pct=p=>sorted[Math.min(sorted.length-1,Math.floor(p*sorted.length))]||-100;
+  const floor=pct(0.1),loud=pct(0.95);
+  const thr=Math.max(floor+8,Math.min(floor+14,loud-18));
+  let speech=Array.from(db,v=>v>thr);
+  // close gaps < 200ms, remove blips < 100ms
+  const fill=(arr,val,maxLen)=>{let i=0;while(i<arr.length){if(arr[i]===val){let j=i;while(j<arr.length&&arr[j]===val)j++;if(i>0&&j<arr.length&&(j-i)<=maxLen)for(let k=i;k<j;k++)arr[k]=!val;i=j}else i++}};
+  fill(speech,false,10);fill(speech,true,5);
+  const first=speech.indexOf(true),last=speech.lastIndexOf(true);
+  const pauses=[];let speakFrames=0;
+  if(first>=0){let i=first;while(i<=last){if(!speech[i]){let j=i;while(j<=last&&!speech[j])j++;const d=(j-i)*F/SR;if(d>=0.5)pauses.push({t:i*F/SR,d:+d.toFixed(2)});i=j}else{speakFrames++;i++}}}
+  const speakSec=speakFrames*F/SR;
+  // pitch, 40 ms window, 30 ms hop, voiced frames only
+  const W=640,H=480,minLag=Math.floor(SR/400),maxLag=Math.floor(SR/75);
+  const pitch=[];// {t,st}
+  for(let start=0;start+W+maxLag<x.length;start+=H){
+    const fi=Math.floor((start+W/2)/F);if(!speech[fi]||db[fi]<thr+3)continue;
+    let e0=0;for(let j=0;j<W;j++)e0+=x[start+j]*x[start+j];if(e0<1e-6)continue;
+    let best=0,bl=0;
+    for(let lag=minLag;lag<=maxLag;lag++){let c=0,e1=0;for(let j=0;j<W;j++){const a=x[start+j+lag];c+=x[start+j]*a;e1+=a*a}const r=c/Math.sqrt(e0*e1+1e-12);if(r>best){best=r;bl=lag}}
+    if(best>0.55&&bl>minLag&&bl<maxLag){const f0=SR/bl;pitch.push({t:start/SR,st:12*Math.log2(f0/100)})}
+    if(pitch.length%400===0)await new Promise(r=>setTimeout(r,0));
+  }
+  // clean octave jumps: drop values >7 st from running median
+  const vals=pitch.map(p=>p.st).sort((a,b)=>a-b);const med=vals[Math.floor(vals.length/2)]||0;
+  const clean=pitch.filter(p=>Math.abs(p.st-med)<9);
+  const std=a=>{if(a.length<2)return 0;const m=a.reduce((s,v)=>s+v,0)/a.length;return Math.sqrt(a.reduce((s,v)=>s+(v-m)*(v-m),0)/a.length)};
+  const winSec=20,nW=Math.max(1,Math.ceil(dur/winSec));
+  const pWin=[],vWin=[];
+  for(let w=0;w<nW;w++){
+    const ps=clean.filter(p=>p.t>=w*winSec&&p.t<(w+1)*winSec).map(p=>p.st);pWin.push(ps.length>=15?std(ps):null);
+    const vs=[];for(let i=Math.floor(w*winSec*SR/F);i<Math.min(nF,Math.floor((w+1)*winSec*SR/F));i++)if(speech[i])vs.push(db[i]);vWin.push(vs.length>=25?vs.reduce((s,v)=>s+v,0)/vs.length:null);
+  }
+  const variety=std(clean.map(p=>p.st));
+  const flatWins=pWin.map((v,i)=>v!==null&&v<1.6?i:-1).filter(i=>i>=0);
+  const vMeans=vWin.filter(v=>v!==null);const vAll=vMeans.length?vMeans.reduce((s,v)=>s+v,0)/vMeans.length:0;
+  const volStd=std(vMeans);
+  let endDrop=0;{const tail=vWin.slice(-2).filter(v=>v!==null);if(tail.length&&vMeans.length>3)endDrop=vAll-(tail.reduce((s,v)=>s+v,0)/tail.length)}
+  // pitch contour for chart: per 5 s median
+  const contour=[];for(let t=0;t<dur;t+=5){const ps=clean.filter(p=>p.t>=t&&p.t<t+5).map(p=>p.st).sort((a,b)=>a-b);contour.push(ps.length>4?ps[Math.floor(ps.length/2)]:null)}
+  return {dur,speakSec,pauses,variety:+variety.toFixed(2),pitchFrames:clean.length,flatWins,winSec,volStd:+volStd.toFixed(2),endDrop:+endDrop.toFixed(1),contour,firstSpeech:first>=0?first*F/SR:0,lastSpeech:last>=0?last*F/SR:dur};
+}
+
+/* ---------- report ---------- */
+let currentAudioUrl=null,currentId=null;
+async function openReport(id,fresh){
+  const s=await load(id);if(!s){toast('Recording not found');show('lib');return}
+  currentId=id;show('report');
+  $('#r-title').textContent=s.title;
+  $('#r-sub').textContent=new Date(s.startedAt).toLocaleString([], {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+' · '+fmtShort(s.duration)+(s.speaker?' · '+s.speaker:'');
+  setStar(s.starred);renderTag(s);
+  if(currentAudioUrl){URL.revokeObjectURL(currentAudioUrl);currentAudioUrl=null}
+  if(s.audio&&!s.analysis){
+    anT0=Date.now();$('#r-body').innerHTML=`<div class="card" style="align-items:center;padding:40px 18px"><span class="mono" style="font-size:14px;color:var(--muted)">Evaluating… <span id="eval-timer">0:00</span></span></div>`;
+    try{s.analysis=await analyse(s.audio)}catch(e){s.analysis={error:true}}
+    anT0=0;
+    await save(s);
+    if(currentId!==id)return;
+  }
+  renderReport(s);
+  if(fresh&&s.audio&&!s.ai&&!s.aiError&&LS('ahc-key')&&!(aiState[id]&&(aiState[id].busy||aiState[id].err)))startAI(id);
+}
+const aiState={};let anT0=0;
+setInterval(()=>{if(current!=='report')return;const el=document.getElementById('eval-timer');if(!el)return;const st=aiState[currentId];const t0=(st&&st.busy&&st.t0)||anT0;if(t0)el.textContent=fmtShort((Date.now()-t0)/1000)},1000);
+const HARD_CAP_MS=90000;
+async function startAI(id){
+  if(aiState[id]&&aiState[id].busy)return;
+  const ctrl=new AbortController();
+  aiState[id]={busy:true,step:'Starting…',err:'',t0:Date.now(),ctrl};
+  const s=await load(id);if(!s){aiState[id]={busy:false};return}
+  if(currentId===id)renderReport(s);
+  let capTimer;
+  const cap=new Promise((_,rej)=>{capTimer=setTimeout(()=>{ctrl.cap=true;ctrl.abort();rej(new Error('ABORTED'))},HARD_CAP_MS);ctrl.signal.addEventListener('abort',()=>rej(new Error('ABORTED')))});
+  try{
+    const out=await Promise.race([runAI(s,step=>{aiState[id].step=step;const el=document.getElementById('ai-step');if(el&&currentId===id)el.textContent=step},ctrl.signal),cap]);
+    const t0=aiState[id].t0;out.tookSec=Math.round((Date.now()-t0)/1000);const fresh=await load(id);if(!fresh)return;fresh.ai=out;fresh.aiError=null;await save(fresh);aiState[id]={busy:false};
+    if(currentId===id&&current==='report')renderReport(fresh);
+  }catch(e){
+    let msg=e.message;
+    if(msg==='ABORTED')msg=ctrl.cap?`Stopped after ${fmtShort(HARD_CAP_MS/1000)} with no answer from Google. Your connection may be too slow or unstable right now. Try on Wi-Fi and tap Try again.`:'You stopped the check. Tap Try again whenever you’re ready.';
+    aiState[id]={busy:false,err:msg==='NOKEY'?'':msg};
+    const fresh=await load(id);if(fresh&&msg!=='NOKEY'){fresh.aiError=msg;await save(fresh)}if(fresh&&currentId===id&&current==='report')renderReport(fresh);
+  }finally{clearTimeout(capTimer)}
+}
+function tagHTML(s){const st=aiState[s.id]||{};if(s.ai)return '<span class="tag ok">✓ Evaluated</span>';if(st.busy)return '<span class="tag wait">Evaluating…</span>';if(s.aiError)return '<span class="tag bad">Not evaluated</span>';if(s.audio)return '<span class="tag wait">Not evaluated</span>';return ''}
+function renderTag(s){let el=document.getElementById('r-tag');if(!el){el=document.createElement('div');el.id='r-tag';el.style.marginTop='4px';$('#r-title').after(el)}el.innerHTML=tagHTML(s)}
+function setStar(on){$('#r-star').className='star'+(on?' on':'');$('#r-star').innerHTML=STAR_SVG(on);$('#r-star').setAttribute('aria-pressed',on?'true':'false')}
+$('#r-star').addEventListener('click',async()=>{const s=await load(currentId);if(!s)return;s.starred=!s.starred;await save(s);setStar(s.starred);toast(s.starred?'Added to favourites':'Removed from favourites')});
+$('#b-back').addEventListener('click',()=>show('lib'));
+
+function meter(label,value,pos,bandL,bandW,ends){pos=Math.max(2,Math.min(98,pos));return `<div class="meter"><div class="top"><span>${label}</span><span class="mono">${value}</span></div><div class="track"><div class="band" style="left:${bandL}%;width:${bandW}%"></div><div class="dot" style="left:${pos}%"></div></div><div class="ends">${ends.map(e=>`<span>${e}</span>`).join('')}</div></div>`}
+
+function renderReport(s){
+  renderTag(s);
+  const d=s.duration||0.01,mins=d/60,tapped=s.taps.length;
+  const AI=s.ai||null;const aiCount=AI?(AI.fillers||[]).length:null;
+  const total=AI?aiCount:tapped,rate=total/Math.max(mins,0.1);
+  const A=s.analysis&&!s.analysis.error?s.analysis:null;
+  const aiErr=(aiState[s.id]||{}).err||s.aiError||'';const pendingAI=!AI&&!tapped&&!!s.audio&&!!LS('ahc-key')&&!aiErr;const noCount=!AI&&!tapped&&!!s.audio&&!pendingAI;
+  const T=s.timing;let timingTxt='—',timingCls='';
+  if(T&&T.r){const ok=d>=T.g-30&&d<=T.r+30;timingTxt=ok?'Qualified':(d<T.g-30?'Under time':'Over time');timingCls=ok?'var(--green)':'var(--amber)'}
+  let h='';
+  if(s.topic)h+=`<div class="card" style="gap:6px"><span class="lab">Table Topic</span><p style="margin:0;font-size:17px;line-height:1.45;font-weight:600;color:#F9FAFB">${esc(s.topic)}</p></div>`;
+  if(s.audio){currentAudioUrl=URL.createObjectURL(s.audio);h+=`<div class="card" style="padding:12px"><audio id="r-audio" controls preload="metadata" src="${currentAudioUrl}"></audio></div>`;
+    const busy=(aiState[s.id]||{}).busy;const hasKey=!!LS('ahc-key');
+    const lbl=busy?`Evaluating… <span class="mono" id="eval-timer">${fmtShort((Date.now()-(aiState[s.id].t0||Date.now()))/1000)}</span> · tap to stop`:'Try again';
+    h+=`<button class="btn ${AI?'ghost ':''}sm" id="r-reeval"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>${lbl}</button>`}
+  else h+=`<p class="note" style="margin:0">No audio was saved for this speech, so it can't be re-evaluated.</p>`;
+  const longP=A?A.pauses.filter(p=>p.d>=3):[];
+  h+=`<div class="grid3"><div class="stat"><span class="lab">Fillers</span><span class="v">${pendingAI?'…':noCount?'—':total}</span><span class="lab">${pendingAI?'AI counting':noCount?'not counted':rate.toFixed(1)+' / min'}</span></div><div class="stat"><span class="lab">Time</span><span class="v">${fmtShort(d)}</span><span class="lab" style="color:${timingCls||'var(--muted)'}">${timingTxt}</span></div><div class="stat"><span class="lab">Pauses</span><span class="v">${A?A.pauses.length:'—'}</span><span class="lab">${A?(longP.length?longP.length+' too long':'none too long'):'no audio'}</span></div></div>`;
+  // timeline
+  const W=352;const x=t=>(Math.min(d,Math.max(0,t))/d*(W-8)+4).toFixed(1);
+  let tl=`<rect x="0" y="30" width="${W}" height="12" rx="6" fill="#262C36"></rect>`;
+  if(T&&T.r){tl+=`<rect x="${x(T.g)}" y="30" width="${Math.max(0,x(Math.min(d,T.r))-x(T.g))}" height="12" fill="#2F4A35"></rect>`}
+  if(AI)tl+=(AI.fillers||[]).filter(f=>typeof f.time_sec==='number').map(f=>`<circle class="mk" data-t="${f.time_sec}" cx="${x(f.time_sec)}" cy="18" r="6" fill="none" stroke="#F5A524" stroke-width="2"><title>${esc(f.word)} at about ${fmtShort(f.time_sec)}</title></circle>`).join('');
+  tl+=s.taps.map((t,i)=>`<circle class="mk" data-t="${t.t}" cx="${x(t.t)}" cy="18" r="5" fill="#F5A524"><title>${esc(t.w)} at ${fmtShort(t.t)}</title></circle>`).join('');
+  if(A)tl+=A.pauses.map(p=>`<rect class="mk" data-t="${p.t}" x="${x(p.t)}" y="50" width="${Math.max(3,(p.d/d*(W-8))).toFixed(1)}" height="12" rx="2" fill="${p.d>=3?'#F87171':'#60A5FA'}"><title>${p.d.toFixed(1)} s pause at ${fmtShort(p.t)}</title></rect>`).join('');
+  h+=`<div class="card"><div class="row"><h2>Timeline</h2><span class="lab">${s.audio?'Tap a mark to hear it':'0:00 – '+fmtShort(d)}</span></div><svg width="100%" viewBox="0 0 ${W} 70" role="img" aria-label="Timeline of fillers and pauses" id="r-tl">${tl}</svg>
+  <div class="chips" style="font-size:12px;color:#D1D5DB;gap:14px"><span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:#F5A524"></span>Tapped</span>${AI?`<span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;border:2px solid #F5A524;box-sizing:border-box"></span>AI heard</span>`:''}${A?`<span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#60A5FA"></span>Pause</span><span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#F87171"></span>Over 3 s</span>`:''}${T&&T.r?`<span style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:8px;border-radius:2px;background:#2F4A35"></span>Timing window</span>`:''}</div></div>`;
+  // fillers
+  const used=AI?aiFillerGroups(AI):Object.entries(s.counts).filter(([,n])=>n>0).sort((a,b)=>b[1]-a[1]);
+  const times=AI?(AI.fillers||[]).map(f=>f.time_sec||0):s.taps.map(t=>t.t);
+  let fillNote='';
+  const src=AI&&tapped?`AI heard ${aiCount} · you tapped ${tapped}.`:'';
+  if(!AI&&tapped===0)fillNote=s.audio?(LS('ahc-key')?(aiErr?'The AI check couldn’t finish, so fillers haven’t been counted yet. Tap Try again at the top.':'Your fillers are being counted from the recording by the AI check below.'):'To count fillers automatically from your recording, add the free Gemini key on the Practice screen.'):'No recording was made, so fillers can only be counted with the live buttons.';
+  else if(total===0)fillNote='The AI heard no fillers. Clean delivery!';
+  else{const first20=times.filter(t=>t<20).length;fillNote=rate>4?'That’s a lot per minute. Replace each filler with a short silent pause.':rate>2?'Moderate. Notice where they cluster on the timeline: usually at the start of a new point.':'Low filler rate. Nice control.';if(first20>=3)fillNote+=' Several came in the first 20 seconds; nerves at the start are common, so memorise your opening line.'}
+  h+=`<div class="card"><div class="row"><h2>Fillers</h2><span style="font-size:14px;color:#D1D5DB"><span class="mono" style="font-size:22px;font-weight:600;color:#F9FAFB">${pendingAI?'…':noCount?'—':total}</span>${pendingAI||noCount?'':' · '+rate.toFixed(1)+' / min'}</span></div>${used.length?`<div class="chips">${used.map(([w,n])=>`<span class="chip">${esc(w)}<b>${n}</b></span>`).join('')}</div>`:''}<p class="note" style="margin:0">${src?esc(src)+' ':''}${fillNote}</p></div>`;
+  // delivery
+  const tips=[];
+  if(A){
+    const ppm=A.pauses.length/Math.max(mins,0.1);
+    let pv=ppm<2?'Few':ppm>10?'Many':'Good';
+    let d1=meter('Pauses',`${A.pauses.length} · ${ppm.toFixed(1)}/min`,ppm/12*100,25,45,['Rushed','Purposeful','Hesitant']);
+    let pNote=`Pauses of half a second or more between phrases. ${longP.length?`${longP.length} lasted over 3 seconds; check whether those were deliberate.`:'None were over 3 seconds.'}`;
+    if(ppm<2)tips.push(['Breathe between ideas','You rarely paused. Add a 1–2 second pause after each key sentence so it lands.']);
+    if(longP.length>=2)tips.push(['Long silences','A few pauses ran over 3 seconds, which can look like a lost thread. Keep a one-line outline in mind for each point.']);
+    let varTxt=A.pitchFrames<40?'—':A.variety<2?'Flat':A.variety<3.2?'Medium':'Expressive';
+    let d2=A.pitchFrames<40?`<div class="meter"><div class="top"><span>Vocal variety</span><span class="mono">Not enough voice</span></div></div>`:meter('Vocal variety',varTxt,(A.variety/6)*100,45,55,['Monotone','','Expressive']);
+    let flatNote='';if(A.flatWins.length&&A.pitchFrames>=40){const ws=A.flatWins.slice(0,3).map(i=>fmtShort(i*A.winSec)+'–'+fmtShort(Math.min(d,(i+1)*A.winSec)));flatNote=`Pitch went flat around ${ws.join(', ')}.`;tips.push(['Vary your voice','Your pitch flattened in places. Pick 2–3 words per point to lift or drop your voice on.'])}
+    else if(A.pitchFrames>=40&&A.variety<2)tips.push(['Vary your voice','Your pitch stayed in a narrow range. Exaggerate the high and low points in practice, then dial it back.']);
+    // contour
+    const cs=A.contour.filter(v=>v!==null);let contourSvg='';
+    if(cs.length>3){const mn=Math.min(...cs),mx=Math.max(...cs),rg=Math.max(4,mx-mn);const n=A.contour.length;let path='',pen=false;A.contour.forEach((v,i)=>{if(v===null){pen=false;return}const px=(i/(n-1||1)*(W-4)+2).toFixed(1),py=(56-((v-mn)/rg)*48).toFixed(1);path+=(pen?'L':'M')+px+','+py;pen=true});contourSvg=`<svg width="100%" viewBox="0 0 ${W} 60" role="img" aria-label="Pitch over the speech"><line x1="0" y1="32" x2="${W}" y2="32" stroke="#262C36"></line><path d="${path}" fill="none" stroke="#F5A524" stroke-width="2" stroke-linejoin="round"></path></svg><div class="ends"><span>Pitch over time</span><span>${fmtShort(d)}</span></div>`}
+    let volTxt=A.volStd<2?'Even':A.volStd<4?'Some swings':'Uneven';
+    let d3=meter('Volume',volTxt,(A.volStd/8)*100,0,35,['Steady','','Uneven']);
+    let volNote=A.endDrop>=4?'Your volume dropped near the end. Finish strong, the last line is what people remember.':'';
+    if(A.endDrop>=4)tips.push(['Finish strong','Volume faded in the last part. Project your closing line to the back of the room.']);
+    const talk=A.speakSec/Math.max(d,1)*100;
+    h+=`<div class="card" style="gap:18px"><div class="row"><h2>Delivery</h2><span class="lab">Measured on this device</span></div>${d1}<p class="note" style="margin:-8px 0 0">${pNote}</p>${longP.length?`<div class="chips">${longP.map(p=>`<button class="jump" data-t="${p.t}">${fmtShort(p.t)} · ${p.d.toFixed(1)} s</button>`).join('')}</div>`:''}${d2}${contourSvg}${flatNote?`<p class="note" style="margin:-8px 0 0">${flatNote}</p>`:''}${d3}${volNote?`<p class="note" style="margin:-8px 0 0">${volNote}</p>`:''}<div class="row" style="font-size:14px;color:#E5E7EB"><span>Speaking time</span><span class="mono">${Math.round(talk)}% of ${fmtShort(d)}</span></div></div>`;
+  } else if(s.audio){
+    h+=`<div class="card"><h2>Delivery</h2><p class="note" style="margin:0">This browser couldn't read the recording to measure pauses and pitch. You can still play it back above.</p></div>`;
+  } else {
+    h+=`<div class="card"><h2>Delivery</h2><p class="note" style="margin:0">No audio was recorded for this speech. Turn on “Record audio” next time to get pauses, vocal variety and volume.</p></div>`;
+  }
+  if(T&&T.r&&timingTxt!=='Qualified')tips.push([timingTxt,`Aim to finish between ${fmtShort(T.g)} and ${fmtShort(T.r)}. You finished at ${fmtShort(d)}.`]);
+  if(rate>3)tips.unshift(['Swap fillers for silence','When you feel a filler coming, close your mouth and pause instead. A pause sounds confident; a filler sounds unsure.']);
+  h+=aiCard(s,AI,d,tips);
+  if(tips.length)h+=`<div class="card"><h2>Focus for next time</h2>${tips.slice(0,3).map(([a,b])=>`<div class="tip"><b>${esc(a)}</b>${esc(b)}</div>`).join('')}</div>`;
+  h+=`<div class="grid2"><button class="btn ghost sm" id="r-del" style="color:#FCA5A5">${TRASH_SVG} Delete</button><button class="btn sm" id="r-again">Practise again</button></div>`;
+  $('#r-body').innerHTML=h;$('#r-body').style.cssText='display:flex;flex-direction:column;gap:16px';
+  const au=$('#r-audio');
+  const seek=t=>{if(!au)return;try{au.currentTime=Math.max(0,t-1.5);au.play().catch(()=>{})}catch(e){}};
+  $('#r-body').querySelectorAll('.mk,.jump').forEach(el=>el.addEventListener('click',()=>seek(+el.dataset.t)));
+  document.querySelectorAll('#ai-run,#ai-run2,#r-reeval').forEach(ab=>ab.addEventListener('click',async()=>{const cur=aiState[s.id];if(cur&&cur.busy){if(cur.ctrl)cur.ctrl.abort();return}if(!LS('ahc-key')){show('setup');setTimeout(()=>{$('#k-key').scrollIntoView({block:'center'});$('#k-key').focus()},100);return}if((aiState[s.id]||{}).busy)return;aiState[s.id]=null;s.ai=null;s.aiError=null;if(s.analysis&&s.analysis.error)s.analysis=null;await save(s);if(!s.analysis){openReport(s.id);return}startAI(s.id)}));
+  $('#r-del').addEventListener('click',()=>askDelete(s.id,s.title,()=>show('lib')));
+  $('#r-again').addEventListener('click',()=>{$('#s-title').value=s.title;$('#s-type').value=s.type;show('setup')});
+}
+
+function aiCard(s,AI,d,tips){
+  const st=Object.assign({},aiState[s.id]||{});if(!st.busy&&!st.err&&s.aiError)st.err=s.aiError;
+  const head=`<div class="row"><h2>Transcript, pace &amp; structure</h2><span class="lab">${AI?esc((AI.model||'Gemini').replace(/^gemini-/,'Gemini ').replace(/-/g,' '))+' · rules '+esc(AI.rules||'v1'):'AI check'}</span></div>`;
+  if(!s.audio)return `<div class="card">${head}<p class="note" style="margin:0">Needs a recording. Turn on “Record audio” before your next speech.</p></div>`;
+  if(!AI){
+    if(st.busy)return `<div class="card">${head}<p class="note mono" id="ai-step" style="margin:0">${esc(st.step||'Working…')}</p><p class="lab" style="margin:0">Usually 5–30 seconds. Keep this screen open. Tap the button at the top to stop. It gives up on its own after 1½ minutes.</p></div>`;
+    if(!LS('ahc-key'))return `<div class="card">${head}<p class="note" style="margin:0">No Gemini key is saved on this phone yet. Keys are saved per device, so add it here too to have fillers counted from your recording, plus a transcript, pace and structure check.</p></div>`;
+    return `<div class="card">${head}${st.err?`<p class="err" style="margin:0">${esc(st.err)}</p>`:'<p class="note" style="margin:0">Not analysed yet.</p>'}<p class="lab" style="margin:0">Tap Try again at the top.</p></div>`;
+  }
+  const wpm=(AI.word_count||0)/Math.max(d/60,0.1);
+  const paceTxt=wpm<100?'Slow':wpm>170?'Fast':wpm<120?'Unhurried':wpm>160?'Brisk':'Good';
+  if(wpm>170)tips.push(['Slow down','You spoke at about '+Math.round(wpm)+' words a minute. Aim for 120–160 so the audience can keep up.']);
+  if(wpm>0&&wpm<100)tips.push(['Pick up the pace','About '+Math.round(wpm)+' words a minute can feel slow. Aim for 120–160, and save slow delivery for key lines.']);
+  const parts=String(AI.transcript||'').split(/(\[\[[^\]]*\]\])/g).map(p=>/^\[\[/.test(p)?`<mark>${esc(p.slice(2,-2))}</mark>`:esc(p)).join('');
+  const S=AI.structure||{};const lab={yes:'Yes',partly:'Partly',no:'No'};
+  const row=(name,o,extra)=>{if(!o)return '';const k=['yes','partly','no'].includes(o.status)?o.status:'partly';return `<div class="ck"><span class="s s-${k}">${lab[k]}</span><div class="d">${esc(name)}${extra||''}${o.note?`<span>${esc(o.note)}</span>`:''}</div></div>`};
+  const mp=S.main_points;const mpExtra=mp&&mp.count?` (${mp.count})`:'';
+  const pts=mp&&Array.isArray(mp.points)&&mp.points.length?`<span>${mp.points.slice(0,5).map((p,i)=>(i+1)+'. '+esc(p)).join('<br>')}</span>`:'';
+  const STRUCT_TIPS={opening:['Open with a hook','Start with a question, a short story, a quote or a striking fact, then name your topic. Avoid opening with an apology or \u201ctoday I will talk about\u201d.'],
+    main_points:['Organise 2\u20133 clear points','Decide your 2\u20133 points before you speak and announce them early, for example \u201cthree lessons I learned\u201d.'],
+    transitions:['Signpost each point','Bridge into every point with a phrase like \u201cMy second lesson\u2026\u201d or \u201cThat brings me to\u2026\u201d.'],
+    conclusion:['Close with a recap','Signal the end, restate your points in one line, and tie back to your opening.'],
+    takeaway:['End with one clear message','Finish with a single line the audience should remember or act on.']};
+  const order=['opening','main_points','transitions','conclusion','takeaway'];
+  const weak=order.find(k=>S[k]&&S[k].status==='no')||order.find(k=>S[k]&&S[k].status==='partly');
+  if(weak)tips.splice(tips.length&&tips[0][0]==='Swap fillers for silence'?1:0,0,STRUCT_TIPS[weak]);
+  return `<div class="card" style="gap:16px">${head}
+  ${meter('Pace',Math.round(wpm)+' wpm',(wpm-60)/160*100,37.5,25,['Slow','120–160','Fast'])}
+  <div style="display:flex;flex-direction:column;gap:0"><h2 style="margin-bottom:4px">Structure</h2>${row('Opening',S.opening)}${row('Main points'+mpExtra,mp,'')}${pts?`<div style="padding:0 0 8px 76px" class="note">${pts}</div>`:''}${row('Transitions',S.transitions)}${row('Conclusion',S.conclusion)}${row('Takeaway',S.takeaway)}</div>
+  <div style="display:flex;flex-direction:column;gap:8px"><h2>Transcript</h2><div class="transcript">${parts||'<span class="lab">No speech detected.</span>'}</div></div>
+  <div class="row"><span class="lab">AI can miss or mis-hear a few fillers.</span>${AI.tookSec?`<span class="lab mono">Took ${fmtShort(AI.tookSec)}</span>`:''}</div></div>`;
+}
+
+/* ---------- library ---------- */
+let filter='all';
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{filter=b.dataset.f;document.querySelectorAll('.seg button').forEach(x=>x.classList.toggle('on',x===b));renderLib()}));
+async function renderLib(){
+  const all=await list();const items=filter==='star'?all.filter(s=>s.starred):all;
+  $('#lib-count').textContent=all.length?all.length+(all.length===1?' speech':' speeches'):'';
+  if(!items.length){$('#lib-list').innerHTML=`<div class="empty">${filter==='star'?'No starred speeches yet. Tap the star on a report to keep it here.':'No speeches yet. Start one from Practice.'}</div>`;return}
+  $('#lib-list').innerHTML=items.map(s=>{const n=s.ai?(s.ai.fillers||[]).length:s.taps.length;const r=n/Math.max(s.duration/60,0.1);return `<div class="item"><button class="main" data-open="${s.id}"><span class="t">${esc(s.title)}</span>${tagHTML(s)?`<span>${tagHTML(s)}</span>`:''}<span class="lab">${new Date(s.startedAt).toLocaleDateString([], {day:'numeric',month:'short'})} · ${fmtShort(s.duration)} · ${n} fillers (${r.toFixed(1)}/min)${s.audio?' · audio':''}</span></button><button class="star${s.starred?' on':''}" data-star="${s.id}" aria-label="${s.starred?'Unstar':'Star'} ${esc(s.title)}" aria-pressed="${s.starred}">${STAR_SVG(s.starred)}</button><button class="del" data-del="${s.id}" aria-label="Delete ${esc(s.title)}">${TRASH_SVG}</button></div>`}).join('');
+}
+$('#lib-list').addEventListener('click',async e=>{
+  const o=e.target.closest('[data-open]'),st=e.target.closest('[data-star]'),dl=e.target.closest('[data-del]');
+  if(o)openReport(o.dataset.open);
+  else if(st){const s=await load(st.dataset.star);if(s){s.starred=!s.starred;await save(s);renderLib()}}
+  else if(dl){const s=await load(dl.dataset.del);if(s)askDelete(s.id,s.title,renderLib)}
+});
+
+/* ---------- confirm dialog ---------- */
+let onYes=null;
+function confirmBox(title,text,yes,fn){$('#m-title').textContent=title;$('#m-text').textContent=text;$('#m-yes').textContent=yes;onYes=fn;$('#modal').classList.remove('hidden');$('#m-no').focus()}
+function askDelete(id,title,after){confirmBox('Delete “'+title+'”?','The recording and its report will be removed from this device. This can’t be undone.','Delete',async()=>{await remove(id);toast('Deleted');after&&after()})}
+$('#m-no').addEventListener('click',()=>{$('#modal').classList.add('hidden');onYes=null});
+$('#m-yes').addEventListener('click',async()=>{$('#modal').classList.add('hidden');const f=onYes;onYes=null;f&&await f()});
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal'){$('#modal').classList.add('hidden');onYes=null}});
+
+renderWords();ttShowCard();
+})();
+</script>
+</body>
+</html>
