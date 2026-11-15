@@ -73,6 +73,8 @@ body.live-g .fb,body.live-a .fb,body.live-r .fb{background:rgba(14,17,22,.55)}
 .tile .meta .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;background:none;border:none;color:inherit;text-align:left;padding:0}
 .tile .meta .t{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tile .tdel{width:36px;height:36px;border:none;background:none;color:#6B7280;display:flex;align-items:center;justify-content:center;flex:none}
+details.fold summary::-webkit-details-marker{display:none}
+details.fold .chev{transition:transform .2s;color:var(--muted)}details.fold[open] .chev{transform:rotate(180deg)}
 mark{background:#3A2E12;color:#FCD34D;border-radius:4px;padding:0 3px;font-weight:600}
 .transcript{font-size:15px;line-height:1.7;color:#E5E7EB;max-height:320px;overflow:auto;padding-right:4px}
 .ck{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:#E5E7EB;padding:10px 0;border-top:1px solid var(--line)}
@@ -162,37 +164,46 @@ nav button.on{color:var(--accent)}
     </label>
     <div class="switch"><span>Record for delivery analysis</span><input type="checkbox" id="s-rec" checked aria-label="Record for analysis"></div>
     <div class="row" id="s-modewrap"><span style="font-size:15px">Mode</span><div class="seg" id="s-mode" style="width:190px" role="group" aria-label="Recording mode"><button type="button" data-m="audio" class="on">Audio</button><button type="button" data-m="video">Video</button></div></div>
+    <div id="tt-opts" class="hidden" style="display:flex;flex-direction:column;gap:12px">
+      <div class="row"><span style="font-size:15px">Topic</span><div class="seg" id="tt-say" style="width:220px" role="group" aria-label="How the topic is given"><button type="button" data-s="show">Text</button><button type="button" data-s="voice">Voice</button><button type="button" data-s="both" class="on">Both</button></div></div>
+      <label class="f">Topic theme (optional)<input type="text" id="tt-theme" placeholder="e.g. travel, Diwali. Empty = random" maxlength="60"></label>
+      <p class="lab" style="margin:0">Your topic is revealed when you tap Start, like at a real meeting.</p>
+    </div>
     <p class="lab hidden" id="s-modehint" style="margin:0">Video uses your front camera and adds body-language feedback (eye contact, gestures, posture, expression). Videos take more space on your phone and a little longer to check.</p>
   </div>
-  <div class="card hidden" id="tt-card">
-    <div class="row"><h2>Your Table Topic</h2><span class="lab" id="tt-src"></span></div>
-    <p id="tt-topic" style="margin:0;font-size:20px;line-height:1.4;font-weight:600;color:#F9FAFB;min-height:56px"></p>
-    <form id="tt-form" class="row" style="gap:8px">
-      <input type="text" id="tt-theme" placeholder="Theme (optional), e.g. travel" aria-label="Table Topics theme" maxlength="60">
-      <button class="btn sm" id="tt-new" style="width:auto;padding:0 16px;white-space:nowrap">New topic</button>
-    </form>
-    <p class="lab" style="margin:0" id="tt-hint">Leave the theme empty for a random topic.</p>
-  </div>
-  <div class="card">
-    <div class="row"><h2>Filler words to catch</h2><span class="lab">All on</span></div>
+  <button class="btn" id="b-start"><svg width="18" height="18" viewBox="0 0 24 24" fill="#111827" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle></svg>Start</button>
+  <p class="lab" style="text-align:center;margin:0" id="ai-status"></p>
+  <details class="card fold" data-fold="words"><summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:32px;gap:10px"><h2>Filler words to catch</h2><span style="display:flex;align-items:center;gap:8px"><span class="lab" id="w-state"></span><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></summary>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px">
     <p class="note" style="margin:0">The AI listens for all of these in your recording, plus repeated words. Tap × only if you want to stop tracking a word.</p>
     <div class="chips" id="s-words"></div>
     <form id="s-addform" class="row" style="gap:8px">
       <input type="text" id="s-new" placeholder="Add a word, e.g. Basically" aria-label="New filler word">
       <button class="btn sm" style="width:auto;padding:0 16px">Add</button>
     </form>
-  </div>
-  <div class="card">
-    <div class="row"><h2>Free AI check (Gemini)</h2><span class="lab" id="k-state">Not set</span></div>
+    </div></details>
+  <details class="card fold" data-fold="ai"><summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:32px;gap:10px"><h2>Free AI check (Gemini)</h2><span style="display:flex;align-items:center;gap:8px"><span class="lab" id="k-state">Not set</span><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></summary>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px">
     <p class="note" style="margin:0">Counts fillers from your recording automatically, writes a transcript, and checks pace and structure. Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:var(--accent)">aistudio.google.com/apikey</a> (no card needed) and paste it here.</p>
     <form id="k-form" class="row" style="gap:8px">
       <input type="password" id="k-key" placeholder="Paste Gemini API key" aria-label="Gemini API key" autocomplete="off">
       <button class="btn sm" style="width:auto;padding:0 16px">Save</button>
     </form>
     <p class="lab" style="margin:0">The key stays on this device. On Google's free tier, audio you send may be used to improve Google's products.</p>
-  </div>
-  <button class="btn" id="b-start"><svg width="18" height="18" viewBox="0 0 24 24" fill="#111827" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle></svg>Start</button>
-  <p class="lab" style="text-align:center;margin:0">Recordings stay on this device only.</p>
+    </div></details>
+  <p class="lab" style="text-align:center;margin:0">Recordings and your key stay on this device only.</p>
+</section>
+
+<!-- REVEAL -->
+<section id="v-reveal" class="wrap hidden" style="min-height:100vh;justify-content:center;gap:20px">
+  <div class="lab" style="text-align:center;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">Your Table Topic</div>
+  <p id="rv-topic" style="margin:0;font-size:28px;line-height:1.35;font-weight:700;text-align:center;color:#F9FAFB;min-height:76px"></p>
+  <button class="btn ghost sm hidden" id="rv-showtext">Show the topic</button>
+  <p class="lab" id="rv-src" style="text-align:center;margin:0"></p>
+  <p class="mono" id="rv-count" style="text-align:center;font-size:18px;color:var(--accent);margin:0;min-height:24px"></p>
+  <button class="btn" id="rv-go">Start speaking</button>
+  <div class="grid2"><button class="btn ghost sm" id="rv-new">New topic</button><button class="btn ghost sm" id="rv-hear">Hear again</button></div>
+  <button class="btn ghost sm" id="rv-cancel" style="color:#FCA5A5">Cancel</button>
 </section>
 
 <!-- LIVE -->
@@ -273,14 +284,15 @@ let words;
 try{words=JSON.parse(localStorage.getItem('ahc-words'))}catch(e){}
 if(!Array.isArray(words)||!words.length)words=DEFAULT_WORDS.slice();
 function saveWords(){try{localStorage.setItem('ahc-words',JSON.stringify(words))}catch(e){}}
-function renderWords(){$('#s-words').innerHTML=words.map((w,i)=>`<span class="chip">${esc(w)}<button class="x" data-i="${i}" aria-label="Remove ${esc(w)}">×</button></span>`).join('')}
+function renderWords(){const ws=document.getElementById('w-state');if(ws)ws.textContent=words.length+' words on';$('#s-words').innerHTML=words.map((w,i)=>`<span class="chip">${esc(w)}<button class="x" data-i="${i}" aria-label="Remove ${esc(w)}">×</button></span>`).join('')}
 $('#s-words').addEventListener('click',e=>{const b=e.target.closest('.x');if(!b)return;if(words.length<=1){toast('Keep at least one word');return}words.splice(+b.dataset.i,1);saveWords();renderWords()});
 $('#s-addform').addEventListener('submit',e=>{e.preventDefault();const v=$('#s-new').value.trim();if(!v)return;if(words.some(w=>w.toLowerCase()===v.toLowerCase())){toast('Already in the list');return}if(words.length>=10){toast('Up to 10 words');return}words.push(v.slice(0,20));$('#s-new').value='';saveWords();renderWords()});
 try{const p=JSON.parse(localStorage.getItem('ahc-prefs')||'{}');if(p.speaker)$('#s-speaker').value=p.speaker;if(p.type)$('#s-type').value=p.type;if(p.rec===false)$('#s-rec').checked=false}catch(e){}
 
 /* ---------- Gemini key ---------- */
 const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}};
-function keyUI(){const k=LS('ahc-key');$('#k-state').textContent=k?'Key saved ✓':'Not set';$('#k-key').value='';$('#k-key').placeholder=k?'Key saved — paste to replace':'Paste Gemini API key'}
+function aiStatus(){const el=document.getElementById('ai-status');if(el)el.textContent=LS('ahc-key')?'AI check: on':'AI check: off. Add your free Gemini key in “Free AI check” below.'}
+function keyUI(){const k=LS('ahc-key');$('#k-state').textContent=k?'Key saved ✓':'Not set';aiStatus();$('#k-key').value='';$('#k-key').placeholder=k?'Key saved — paste to replace':'Paste Gemini API key'}
 $('#k-form').addEventListener('submit',e=>{e.preventDefault();const v=$('#k-key').value.trim();if(!v){if(LS('ahc-key')){LS('ahc-key',null);LS('ahc-model',null);toast('Key removed')}keyUI();return}LS('ahc-key',v);LS('ahc-model',null);keyUI();toast('Key saved')});
 keyUI();
 
@@ -518,24 +530,48 @@ async function ttFromAI(theme){
   }
   throw new Error('ai failed');
 }
-async function ttNew(){
-  if(ttBusy)return;const theme=$('#tt-theme').value.trim();
-  const btn=$('#tt-new');
-  if(theme&&LS('ahc-key')){
-    ttBusy=true;btn.textContent='Finding…';btn.disabled=true;$('#tt-topic').style.opacity='.5';
-    try{ttCurrent=await ttFromAI(theme);$('#tt-src').textContent='AI · '+theme}
-    catch(e){ttCurrent=ttFromBank(theme);$('#tt-src').textContent=ttCurrent.matched?'Topic bank · '+ttCurrent.c:'Topic bank · random';toast('Couldn’t reach the AI, picked from the topic bank')}
-    finally{ttBusy=false;btn.textContent='New topic';btn.disabled=false;$('#tt-topic').style.opacity='1'}
-  }else{
-    ttCurrent=ttFromBank(theme);
-    $('#tt-src').textContent=theme&&!ttCurrent.matched?'Random (no match)':'Topic bank · '+ttCurrent.c;
-    if(theme&&!ttCurrent.matched)toast(LS('ahc-key')?'No match, here’s a random topic':'Add the free Gemini key for topics on any theme');
-  }
-  ttRemember(ttCurrent.t);$('#tt-topic').textContent=ttCurrent.t;
+async function ttPick(){
+  const theme=$('#tt-theme').value.trim();let t,src;
+  if(theme&&LS('ahc-key')){try{t=await ttFromAI(theme);src='Written by AI · '+theme}catch(e){t=ttFromBank(theme);src=t.matched?'Topic bank · '+t.c:'Topic bank · random (AI unavailable)'}}
+  else{t=ttFromBank(theme);src=theme&&!t.matched?'Random topic (no match for “'+theme+'”'+(LS('ahc-key')?'':', add a Gemini key for any theme')+')':'Topic bank · '+t.c}
+  ttRemember(t.t);return {t:t.t,src};
 }
-$('#tt-form').addEventListener('submit',e=>{e.preventDefault();ttNew()});
-function ttShowCard(){const on=$('#s-type').value==='tt';$('#tt-card').classList.toggle('hidden',!on);if(on&&!ttCurrent)ttNew()}
-$('#s-type').addEventListener('change',ttShowCard);
+let ttSay='both';
+function setSay(v){ttSay=['show','voice','both'].includes(v)?v:'both';document.querySelectorAll('#tt-say button').forEach(b=>b.classList.toggle('on',b.dataset.s===ttSay));try{const p=JSON.parse(localStorage.getItem('ahc-prefs')||'{}');p.say=ttSay;localStorage.setItem('ahc-prefs',JSON.stringify(p))}catch(e){}}
+document.querySelectorAll('#tt-say button').forEach(b=>b.addEventListener('click',()=>setSay(b.dataset.s)));
+try{setSay(JSON.parse(localStorage.getItem('ahc-prefs')||'{}').say||'both')}catch(e){}
+function ttShowCard(){$('#tt-opts').classList.toggle('hidden',$('#s-type').value!=='tt')}
+$('#s-type').addEventListener('change',()=>{ttShowCard();try{const p=JSON.parse(localStorage.getItem('ahc-prefs')||'{}');p.type=$('#s-type').value;localStorage.setItem('ahc-prefs',JSON.stringify(p))}catch(e){}});
+/* speech synthesis */
+function pickVoice(){try{const vs=speechSynthesis.getVoices();return vs.find(v=>/en-IN/i.test(v.lang))||vs.find(v=>/^en-GB/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang))||null}catch(e){return null}}
+function unlockSpeech(){try{const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u)}catch(e){}}
+function sayText(text){return new Promise(res=>{try{if(!window.speechSynthesis){res(false);return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);const v=pickVoice();if(v){u.voice=v;u.lang=v.lang}u.rate=.95;let done=false;const fin=ok=>{if(!done){done=true;res(ok)}};u.onend=()=>fin(true);u.onerror=()=>fin(false);speechSynthesis.speak(u);setTimeout(()=>fin(true),Math.min(20000,1500+text.length*90))}catch(e){res(false)}})}
+function stopSpeech(){try{speechSynthesis.cancel()}catch(e){}}
+/* reveal screen: resolves with the topic, or null if cancelled */
+function revealTopic(){
+  return new Promise(resolve=>{
+    let cur=null,cdTimer=null,gen=0,finished=false;
+    const clearCd=()=>{clearInterval(cdTimer);cdTimer=null;$('#rv-count').textContent=''};
+    const finish=v=>{if(finished)return;finished=true;gen++;clearCd();stopSpeech();['rv-go','rv-new','rv-hear','rv-cancel','rv-showtext'].forEach(id=>{const el=$('#'+id);el.replaceWith(el.cloneNode(true))});resolve(v)};
+    const countdown=my=>{let n=5;$('#rv-count').textContent='Timer starts in '+n+'…';cdTimer=setInterval(()=>{if(my!==gen)return;n--;if(n<=0){finish(cur)}else $('#rv-count').textContent='Timer starts in '+n+'…'},1000)};
+    const present=async()=>{
+      const my=++gen;clearCd();stopSpeech();
+      $('#rv-topic').textContent='Finding a topic…';$('#rv-topic').style.opacity='.5';$('#rv-src').textContent='';$('#rv-showtext').classList.add('hidden');
+      cur=await ttPick();if(my!==gen||finished)return;
+      $('#rv-topic').style.opacity='1';$('#rv-src').textContent=cur.src;
+      const showText=ttSay!=='voice';      $('#rv-topic').textContent=showText?cur.t:'Listen…';$('#rv-showtext').classList.toggle('hidden',showText);
+      $('#rv-hear').classList.toggle('hidden',ttSay==='show');
+      if(ttSay!=='show'){await sayText(cur.t);if(my!==gen||finished)return}
+      countdown(my);
+    };
+    $('#rv-go').onclick=()=>{if(cur)finish(cur)};
+    $('#rv-new').onclick=()=>present();
+    $('#rv-hear').onclick=async()=>{if(!cur)return;const my=++gen;clearCd();await sayText(cur.t);if(my===gen&&!finished)countdown(my)};
+    $('#rv-showtext').onclick=()=>{if(cur){$('#rv-topic').textContent=cur.t;$('#rv-showtext').classList.add('hidden')}};
+    $('#rv-cancel').onclick=()=>finish(null);
+    show('reveal');present();
+  });
+}
 
 /* ---------- thumbnails ---------- */
 function grabThumb(v){try{const w=v.videoWidth,h=v.videoHeight;if(!w||!h)return null;const sz=320,sc=sz/Math.min(w,h);const c=document.createElement('canvas');c.width=sz;c.height=sz;const x=c.getContext('2d');x.drawImage(v,(sz-w*sc)/2,(sz-h*sc)/2,w*sc,h*sc);return c.toDataURL('image/jpeg',0.72)}catch(e){return null}}
@@ -551,7 +587,7 @@ try{const p=JSON.parse(localStorage.getItem('ahc-prefs')||'{}');setMode(p.mode||
 
 /* ---------- views ---------- */
 let current='setup';
-function show(v){current=v;if(v==='setup')setTimeout(ttShowCard,0);for(const id of['setup','live','report','lib'])$('#v-'+id).classList.toggle('hidden',id!==v);$('#nav').classList.toggle('hidden',v==='live');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v||(v==='report'&&b.dataset.v==='lib')));window.scrollTo(0,0);if(v==='lib')renderLib()}
+function show(v){current=v;if(v==='setup')setTimeout(ttShowCard,0);for(const id of['setup','live','report','lib','reveal'])$('#v-'+id).classList.toggle('hidden',id!==v);$('#nav').classList.toggle('hidden',v==='live'||v==='reveal');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v||(v==='report'&&b.dataset.v==='lib')));window.scrollTo(0,0);if(v==='lib')renderLib()}
 document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>show(b.dataset.v)));
 
 /* ---------- live session ---------- */
@@ -562,8 +598,8 @@ $('#b-start').addEventListener('click',async()=>{
   const title=$('#s-title').value.trim()||T.name;
   const speaker=$('#s-speaker').value.trim();
   try{localStorage.setItem('ahc-prefs',JSON.stringify({speaker,type,rec:$('#s-rec').checked,mode:recMode}))}catch(e){}
-  const topic=type==='tt'&&ttCurrent?ttCurrent.t:'';
-  if(type==='tt'){ttCurrent=null;$('#tt-topic').textContent=''}
+  let topic='';
+  if(type==='tt'&&ttSay!=='show')unlockSpeech();
   S={id:'s'+Date.now(),title,speaker,type,topic,timing:{g:T.g,a:T.a,r:T.r},words:words.slice(),counts:Object.fromEntries(words.map(w=>[w,0])),taps:[],startedAt:Date.now(),accum:0,t0:performance.now(),running:true,starred:false,audio:null,mime:'',analysis:null};
   chunks=[];rec=null;stream=null;vrec=null;vchunks=[];vmime='';
   $('#l-recstate').classList.add('hidden');
@@ -580,18 +616,23 @@ $('#b-start').addEventListener('click',async()=>{
       const mt=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))||'';
       rec=new MediaRecorder(aStream,mt?{mimeType:mt}:undefined);
       rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
-      rec.start(1000);
       $('#l-recstate').classList.remove('hidden');
       if(videoOn){
         vmime=['video/webm;codecs=vp8,opus','video/webm','video/mp4;codecs=avc1,mp4a','video/mp4'].find(m=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))||'';
         const vo={videoBitsPerSecond:350000,audioBitsPerSecond:48000};if(vmime)vo.mimeType=vmime;
-        try{vrec=new MediaRecorder(stream,vo);vrec.ondataavailable=e=>{if(e.data&&e.data.size)vchunks.push(e.data)};vrec.start(1000)}catch(e){vrec=null;videoOn=false;toast('Video recording not supported here, recording audio only')}
+        try{vrec=new MediaRecorder(stream,vo);vrec.ondataavailable=e=>{if(e.data&&e.data.size)vchunks.push(e.data)}}catch(e){vrec=null;videoOn=false;toast('Video recording not supported here, recording audio only')}
       }
     }catch(e){toast('Microphone not available — counting only');}
   }
   $('#v-live').classList.toggle('vid',videoOn);$('#l-vbox').classList.toggle('hidden',!videoOn);
+  if(type==='tt'){
+    const got=await revealTopic();
+    if(!got){if(stream)stream.getTracks().forEach(t=>t.stop());S=null;show('setup');return}
+    topic=got.t;S.topic=topic;
+  }
+  try{if(rec)rec.start(1000);if(vrec)vrec.start(1000)}catch(e){}
   if(videoOn){const v=$('#l-video');v.srcObject=stream;try{v.play()}catch(e){}const sid=S.id;setTimeout(()=>{if(S&&S.id===sid)S.thumb=grabThumb(v)},2500)}
-  S.t0=performance.now();
+  S.startedAt=Date.now();S.t0=performance.now();
   try{wake=await navigator.wakeLock.request('screen')}catch(e){wake=null}
   $('#l-title').textContent=title;{let el=document.getElementById('l-topic');if(!el){el=document.createElement('p');el.id='l-topic';el.style.cssText='margin:0;font-size:18px;line-height:1.4;font-weight:600;color:#F9FAFB;text-align:center';$('.ringbox').before(el)}el.textContent=topic?'“'+topic+'”':'';el.classList.toggle('hidden',!topic)}$('#l-type').textContent=TYPES[type].name+(speaker?' · '+speaker:'');
   const sg=S.timing;$('#l-signals').innerHTML=sg.r?`<span class="sig g">Green ${fmtShort(sg.g)}</span><span class="sig a">Yellow ${fmtShort(sg.a)}</span><span class="sig r">Red ${fmtShort(sg.r)}</span>`:'';
@@ -880,7 +921,8 @@ $('#m-no').addEventListener('click',()=>{$('#modal').classList.add('hidden');onY
 $('#m-yes').addEventListener('click',async()=>{$('#modal').classList.add('hidden');const f=onYes;onYes=null;f&&await f()});
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal'){$('#modal').classList.add('hidden');onYes=null}});
 
-renderWords();ttShowCard();
+renderWords();ttShowCard();aiStatus();
+document.querySelectorAll('details.fold').forEach(d=>{const k='ahc-fold-'+d.dataset.fold;const v=LS(k);d.open=v===null?(d.dataset.fold==='ai'?!LS('ahc-key'):false):v==='1';d.addEventListener('toggle',()=>LS(k,d.open?'1':'0'))});
 })();
 </script>
 </body>
