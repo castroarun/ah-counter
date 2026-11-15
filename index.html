@@ -59,19 +59,19 @@ body.live-g .fb,body.live-a .fb,body.live-r .fb{background:rgba(14,17,22,.55)}
 #sigflash{position:fixed;inset:0;z-index:30;pointer-events:none;opacity:0;display:flex;align-items:center;justify-content:center;font-size:56px;font-weight:700;letter-spacing:.06em;color:#fff}
 #sigflash.go{animation:sflash 1.8s ease-out}
 @keyframes sflash{0%,30%,60%{opacity:.92}15%,45%{opacity:.25}100%{opacity:0}}
-.gal{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.tile{position:relative;display:flex;flex-direction:column;gap:6px}
+.gal{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tile{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0}
 .tile .thumb{position:relative;width:100%;aspect-ratio:1/1;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#1C2129;padding:0;display:block;color:inherit}
 .tile .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .tile .aud{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:12px;font-weight:600}
 .tile .chipd{position:absolute;left:8px;top:8px;background:rgba(0,0,0,.6);color:#F3F4F6;font-size:12px;font-weight:600;border-radius:8px;padding:3px 7px}
-.tile .chipt{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.6);color:#F3F4F6;font-size:12px;border-radius:8px;padding:3px 7px}
-.tile .chipm{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.6);border-radius:8px;padding:3px 6px;display:flex}
+.tile .chipt{position:absolute;right:8px;bottom:12px;background:rgba(0,0,0,.6);color:#F3F4F6;font-size:12px;border-radius:8px;padding:3px 7px}
+.tile .chipm{position:absolute;left:8px;bottom:12px;background:rgba(0,0,0,.6);border-radius:8px;padding:3px 6px;display:flex}
 .tile .tstar{position:absolute;right:2px;top:2px;width:44px;height:44px;border:none;background:none;display:flex;align-items:center;justify-content:center;color:#F3F4F6;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))}
 .tile .tstar.on{color:var(--accent)}
 .tile .meta{display:flex;align-items:flex-start;gap:4px}
 .tile .meta .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;background:none;border:none;color:inherit;text-align:left;padding:0}
-.tile .meta .t{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .meta .t{font-size:14px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
 .tile .tdel{width:36px;height:36px;border:none;background:none;color:#6B7280;display:flex;align-items:center;justify-content:center;flex:none}
 details.fold summary::-webkit-details-marker{display:none}
 details.fold .chev{transition:transform .2s;color:var(--muted)}details.fold[open] .chev{transform:rotate(180deg)}
@@ -151,7 +151,7 @@ nav button.on{color:var(--accent)}
 <section id="v-setup" class="wrap">
   <div class="row"><div><div class="lab">Toastmasters practice</div><h1>Ah Counter</h1></div></div>
   <div class="card">
-    <label class="f">Speech title<input type="text" id="s-title" placeholder="e.g. Icebreaker"></label>
+    <label class="f">Speech title<input type="text" id="s-title" placeholder="Leave empty and the AI will name it"></label>
     <label class="f">Speaker<input type="text" id="s-speaker" placeholder="Your name"></label>
     <label class="f">Speech type
       <select id="s-type">
@@ -320,7 +320,7 @@ async function wavFrom(blob,forceSR){
   for(let i=0;i<x.length;i++){const s=Math.max(-1,Math.min(1,x[i]));v.setInt16(44+i*2,s<0?s*0x8000:s*0x7FFF,true)}
   return new Blob([ab],{type:'audio/wav'});
 }
-const RULES_VERSION='v4';
+const RULES_VERSION='v5';
 const PINNED_MODELS=['gemini-3.5-flash','gemini-3.5-flash-lite','gemini-3.8-flash','gemini-3.1-flash-lite'];
 function buildPrompt(s){
   return `You are the Ah-Counter for a Toastmasters club. Listen to this speech recording and follow these rules exactly.
@@ -330,6 +330,7 @@ PART A: TRANSCRIPT
 2. Wrap each filler or repetition in double square brackets: [[um]], [[like]], [[I I]]. Mark "like", "so", "right", "actually", "well", "okay" ONLY when they add no meaning to the sentence. "So" at the start of a sentence counts as a filler. "I'd like tea" is not a filler.
 3. List every bracketed item in "fillers" in the order spoken, with approximate seconds from the start. The list must match the brackets one to one.
 4. word_count = all spoken words, NOT counting fillers or repeated words.
+5. title = a short title of 2 to 5 words saying what the speech is about (for example "Lessons from my first job"). No quotes, no speech-type label. Use "Untitled" if there is no speech.
 
 ${s.topic?`CONTEXT: This is a Table Topics answer (impromptu, 1 to 2 minutes) to the question: "${s.topic}". For the opening check, the topic is clear if the speaker addresses this question. Short answers are expected, so 2 main points is enough for main_points "yes".
 
@@ -352,11 +353,11 @@ For each write "note": ONE short factual sentence addressed as "you", with an ap
 `:''}Return ONLY JSON matching the schema. If there is no speech, return an empty transcript, an empty fillers list and "no" for every check.`;
 }
 const SCHEMA_V=(video)=>{const chk={type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no']},note:{type:'STRING'}},required:['status','note']};
-  return {type:'OBJECT',properties:{transcript:{type:'STRING'},word_count:{type:'INTEGER'},
+  return {type:'OBJECT',properties:{title:{type:'STRING'},transcript:{type:'STRING'},word_count:{type:'INTEGER'},
   fillers:{type:'ARRAY',items:{type:'OBJECT',properties:{word:{type:'STRING'},type:{type:'STRING',enum:['filler','repeat']},time_sec:{type:'NUMBER'}},required:['word','type','time_sec']}},
   structure:{type:'OBJECT',properties:{opening:chk,main_points:{type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no']},count:{type:'INTEGER'},points:{type:'ARRAY',items:{type:'STRING'}},note:{type:'STRING'}},required:['status','count','points','note']},transitions:chk,conclusion:chk,takeaway:chk},required:['opening','main_points','transitions','conclusion','takeaway']},
   ...(video?{body:{type:'OBJECT',properties:{eye_contact:chk,gestures:chk,posture:chk,expression:chk},required:['eye_contact','gestures','posture','expression']}}:{})},
-  required:['transcript','word_count','fillers','structure',...(video?['body']:[])]}};
+  required:['title','transcript','word_count','fillers','structure',...(video?['body']:[])]}};
 const SCHEMA=SCHEMA_V(false);
 async function callGemini(model,key,mime,b64,prompt,opt,signal){
   opt=opt||{schema:true,thinking:true};const part=opt.file?{file_data:{mime_type:mime,file_uri:opt.file}}:{inline_data:{mime_type:mime,data:b64}};
@@ -595,12 +596,12 @@ let vrec=null,vchunks=[],vmime='';let S=null,timerId=null,rec=null,chunks=[],str
 function elapsed(){if(!S)return 0;return (S.accum+(S.running?(performance.now()-S.t0):0))/1000}
 $('#b-start').addEventListener('click',async()=>{
   const type=$('#s-type').value,T=TYPES[type];
-  const title=$('#s-title').value.trim()||T.name;
+  const userTitle=$('#s-title').value.trim();const title=userTitle||T.name;
   const speaker=$('#s-speaker').value.trim();
   try{localStorage.setItem('ahc-prefs',JSON.stringify({speaker,type,rec:$('#s-rec').checked,mode:recMode}))}catch(e){}
   let topic='';
   if(type==='tt'&&ttSay!=='show')unlockSpeech();
-  S={id:'s'+Date.now(),title,speaker,type,topic,timing:{g:T.g,a:T.a,r:T.r},words:words.slice(),counts:Object.fromEntries(words.map(w=>[w,0])),taps:[],startedAt:Date.now(),accum:0,t0:performance.now(),running:true,starred:false,audio:null,mime:'',analysis:null};
+  S={id:'s'+Date.now(),title,autoTitle:!userTitle,speaker,type,topic,timing:{g:T.g,a:T.a,r:T.r},words:words.slice(),counts:Object.fromEntries(words.map(w=>[w,0])),taps:[],startedAt:Date.now(),accum:0,t0:performance.now(),running:true,starred:false,audio:null,mime:'',analysis:null};
   chunks=[];rec=null;stream=null;vrec=null;vchunks=[];vmime='';
   $('#l-recstate').classList.add('hidden');
   let videoOn=false;
@@ -730,7 +731,7 @@ let currentAudioUrl=null,currentId=null;
 async function openReport(id,fresh){
   const s=await load(id);if(!s){toast('Recording not found');show('lib');return}
   currentId=id;show('report');
-  $('#r-title').textContent=s.title;
+  $('#r-title').textContent=dispTitle(s);
   $('#r-sub').textContent=new Date(s.startedAt).toLocaleString([], {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+' · '+fmtShort(s.duration)+(s.speaker?' · '+s.speaker:'');
   setStar(s.starred);renderTag(s);
   if(currentAudioUrl){URL.revokeObjectURL(currentAudioUrl);currentAudioUrl=null}
@@ -757,7 +758,7 @@ async function startAI(id){
   const cap=new Promise((_,rej)=>{capTimer=setTimeout(()=>{ctrl.cap=true;ctrl.abort();rej(new Error('ABORTED'))},s.video?240000:HARD_CAP_MS);ctrl.signal.addEventListener('abort',()=>rej(new Error('ABORTED')))});
   try{
     const out=await Promise.race([runAI(s,step=>{aiState[id].step=step;const el=document.getElementById('ai-step');if(el&&currentId===id)el.textContent=step},ctrl.signal),cap]);
-    const t0=aiState[id].t0;out.tookSec=Math.round((Date.now()-t0)/1000);const fresh=await load(id);if(!fresh)return;fresh.ai=out;fresh.aiError=null;await save(fresh);aiState[id]={busy:false};
+    const t0=aiState[id].t0;out.tookSec=Math.round((Date.now()-t0)/1000);const fresh=await load(id);if(!fresh)return;fresh.ai=out;fresh.aiError=null;if(fresh.autoTitle&&out.title&&!/^untitled$/i.test(out.title.trim()))fresh.title=String(out.title).trim().replace(/^["“”']+|["“”'.]+$/g,'').slice(0,60);await save(fresh);aiState[id]={busy:false};
     if(currentId===id&&current==='report')renderReport(fresh);
   }catch(e){
     let msg=e.message;
@@ -766,8 +767,22 @@ async function startAI(id){
     const fresh=await load(id);if(fresh&&msg!=='NOKEY'){fresh.aiError=msg;await save(fresh)}if(fresh&&currentId===id&&current==='report')renderReport(fresh);
   }finally{clearTimeout(capTimer)}
 }
+const ABBR={tt:'TT',ice:'IB',std:'PS',eval:'EV',none:'PR'};
+function dispTitle(s){const a=ABBR[s.type]||'PR';let t=s.title||'';if(s.autoTitle&&!s.ai&&s.topic&&s.type==='tt')t=s.topic.length>48?s.topic.slice(0,46)+'…':s.topic;return a+' · '+t}
+function scoreOf(s){
+  if(!s.ai)return null;const A=s.analysis&&!s.analysis.error?s.analysis:null;const AI=s.ai;const d=Math.max(s.duration||1,1);
+  const st=v=>v&&v.status==='yes'?1:v&&v.status==='partly'?.5:0;const parts=[];
+  const fr=(AI.fillers||[]).length/Math.max(d/60,.1);parts.push([2,fr<=1?1:fr<=2?.8:fr<=3?.6:fr<=5?.35:.1]);
+  const S=AI.structure||{};const sk=['opening','main_points','transitions','conclusion','takeaway'].filter(k=>S[k]);if(sk.length)parts.push([3,sk.reduce((a,k)=>a+st(S[k]),0)/sk.length]);
+  const wpm=(AI.word_count||0)/Math.max(d/60,.1);if(AI.word_count)parts.push([1,wpm>=120&&wpm<=160?1:(wpm>=100&&wpm<=175)?.6:.3]);
+  if(s.timing&&s.timing.r)parts.push([1,d>=s.timing.g-30&&d<=s.timing.r+30?1:.3]);
+  if(A){const lp=A.pauses.filter(p=>p.d>=3).length;const dl=[lp===0?1:lp===1?.7:.4];if(A.pitchFrames>=40)dl.push(A.variety>=3.2?1:A.variety>=2?.7:.3);dl.push(A.volStd<2?1:A.volStd<4?.7:.4);parts.push([2,dl.reduce((a,b)=>a+b,0)/dl.length])}
+  if(AI.body){const bk=['eye_contact','gestures','posture','expression'].filter(k=>AI.body[k]);if(bk.length)parts.push([2,bk.reduce((a,k)=>a+st(AI.body[k]),0)/bk.length])}
+  const w=parts.reduce((a,p)=>a+p[0],0);if(!w)return null;return Math.round(100*parts.reduce((a,p)=>a+p[0]*p[1],0)/w);
+}
+const scoreCol=n=>n>=75?'#22C55E':n>=50?'#EAB308':'#EF4444';
 function tagHTML(s){const st=aiState[s.id]||{};if(s.ai)return '<span class="tag ok">✓ Evaluated</span>';if(st.busy)return '<span class="tag wait">Evaluating…</span>';if(s.aiError)return '<span class="tag bad">Not evaluated</span>';if(s.audio)return '<span class="tag wait">Not evaluated</span>';return ''}
-function renderTag(s){let el=document.getElementById('r-tag');if(!el){el=document.createElement('div');el.id='r-tag';el.style.marginTop='4px';$('#r-title').after(el)}el.innerHTML=tagHTML(s)}
+function renderTag(s){let el=document.getElementById('r-tag');if(!el){el=document.createElement('div');el.id='r-tag';el.style.cssText='margin-top:4px;display:flex;gap:6px;flex-wrap:wrap';$('#r-title').after(el)}const sc=scoreOf(s);el.innerHTML=tagHTML(s)+(sc!==null?`<span class="tag" style="background:${scoreCol(sc)}22;color:${scoreCol(sc)};border:1px solid ${scoreCol(sc)}66" title="Score from fillers, structure, delivery, pace and timing${s.ai&&s.ai.body?', and body language':''}">Score ${sc}/100</span>`:'');$('#r-title').textContent=dispTitle(s)}
 function setStar(on){$('#r-star').className='star'+(on?' on':'');$('#r-star').innerHTML=STAR_SVG(on);$('#r-star').setAttribute('aria-pressed',on?'true':'false')}
 $('#r-star').addEventListener('click',async()=>{const s=await load(currentId);if(!s)return;s.starred=!s.starred;await save(s);setStar(s.starred);toast(s.starred?'Added to favourites':'Removed from favourites')});
 $('#b-back').addEventListener('click',()=>show('lib'));
@@ -847,8 +862,8 @@ function renderReport(s){
   const seek=t=>{if(!au)return;try{au.currentTime=Math.max(0,t-1.5);au.play().catch(()=>{})}catch(e){}};
   $('#r-body').querySelectorAll('.mk,.jump').forEach(el=>el.addEventListener('click',()=>seek(+el.dataset.t)));
   document.querySelectorAll('#ai-run,#ai-run2,#r-reeval').forEach(ab=>ab.addEventListener('click',async()=>{const cur=aiState[s.id];if(cur&&cur.busy){if(cur.ctrl)cur.ctrl.abort();return}if(!LS('ahc-key')){show('setup');setTimeout(()=>{$('#k-key').scrollIntoView({block:'center'});$('#k-key').focus()},100);return}if((aiState[s.id]||{}).busy)return;aiState[s.id]=null;s.ai=null;s.aiError=null;if(s.analysis&&s.analysis.error)s.analysis=null;await save(s);if(!s.analysis){openReport(s.id);return}startAI(s.id)}));
-  $('#r-del').addEventListener('click',()=>askDelete(s.id,s.title,()=>show('lib')));
-  $('#r-again').addEventListener('click',()=>{$('#s-title').value=s.title;$('#s-type').value=s.type;show('setup')});
+  $('#r-del').addEventListener('click',()=>askDelete(s.id,dispTitle(s),()=>show('lib')));
+  $('#r-again').addEventListener('click',()=>{$('#s-title').value=s.autoTitle?'':s.title;$('#s-type').value=s.type;show('setup')});
 }
 
 function aiCard(s,AI,d,tips){
@@ -898,11 +913,11 @@ async function renderLib(){
   const all=await list();const items=filter==='star'?all.filter(s=>s.starred):filter==='video'?all.filter(s=>s.video):all;
   $('#lib-count').textContent=all.length?all.length+(all.length===1?' speech':' speeches'):'';
   if(!items.length){$('#lib-list').innerHTML=`<div class="empty">${filter==='star'?'No starred speeches yet. Tap the star on any recording to keep it here.':filter==='video'?'No videos yet. Switch Mode to Video on the Practice screen.':'No speeches yet. Start one from Practice.'}</div>`;return}
-  $('#lib-list').innerHTML='<div class="gal">'+items.map(s=>{const n=s.ai?(s.ai.fillers||[]).length:s.taps.length;const d=new Date(s.startedAt);
+  $('#lib-list').innerHTML='<div class="gal">'+items.map(s=>{const n=s.ai?(s.ai.fillers||[]).length:s.taps.length;const d=new Date(s.startedAt);const sc=scoreOf(s);
     const media=s.thumb?`<img src="${s.thumb}" alt="">`:`<span class="aud">${s.video?'<span style="font-size:13px">Video</span>':WAVE_SVG+'<span>'+esc(TYPES[s.type]?TYPES[s.type].name:'Speech')+'</span>'}</span>`;
-    return `<div class="tile"><button class="thumb" data-open="${s.id}" aria-label="Open ${esc(s.title)}">${media}<span class="chipd">${d.toLocaleDateString([], {day:'numeric',month:'short'})}</span><span class="chipm">${s.video?CAM_SVG:MIC_SVG}</span><span class="chipt mono">${fmtShort(s.duration)}</span></button>
-    <button class="tstar${s.starred?' on':''}" data-star="${s.id}" aria-label="${s.starred?'Unstar':'Star'} ${esc(s.title)}" aria-pressed="${!!s.starred}">${STAR_SVG(s.starred)}</button>
-    <div class="meta"><button class="tx" data-open="${s.id}"><span class="t">${esc(s.title)}</span><span class="lab">${s.ai||s.taps.length?n+' filler'+(n===1?'':'s'):(s.audio?'Not counted':'No audio')}</span>${tagHTML(s)?`<span>${tagHTML(s)}</span>`:''}</button><button class="tdel" data-del="${s.id}" aria-label="Delete ${esc(s.title)}">${TRASH_SVG}</button></div></div>`}).join('')+'</div>';
+    return `<div class="tile"><button class="thumb" data-open="${s.id}" aria-label="Open ${esc(dispTitle(s))}">${media}${sc!==null?`<span style="position:absolute;left:0;right:0;bottom:0;height:6px;background:rgba(0,0,0,.5)"><span style="display:block;height:6px;width:${sc}%;background:${scoreCol(sc)}"></span></span>`:''}<span class="chipd">${d.toLocaleDateString([], {day:'numeric',month:'short'})}</span><span class="chipm" style="align-items:center;gap:5px">${s.video?CAM_SVG:MIC_SVG}${sc!==null?`<b class="mono" style="font-size:12px;color:${scoreCol(sc)}">${sc}</b>`:''}</span><span class="chipt mono">${fmtShort(s.duration)}</span></button>
+    <button class="tstar${s.starred?' on':''}" data-star="${s.id}" aria-label="${s.starred?'Unstar':'Star'} ${esc(dispTitle(s))}" aria-pressed="${!!s.starred}">${STAR_SVG(s.starred)}</button>
+    <div class="meta"><button class="tx" data-open="${s.id}"><span class="t">${esc(dispTitle(s))}</span><span class="lab">${s.ai||s.taps.length?n+' filler'+(n===1?'':'s'):(s.audio?'Not counted':'No audio')}</span>${tagHTML(s)?`<span>${tagHTML(s)}</span>`:''}</button><button class="tdel" data-del="${s.id}" aria-label="Delete ${esc(dispTitle(s))}">${TRASH_SVG}</button></div></div>`}).join('')+'</div>';
   // fill in missing video thumbnails (older recordings)
   for(const s of items.filter(x=>x.video&&!x.thumb)){const t=await thumbFromBlob(s.video);if(t){const f=await load(s.id);if(f){f.thumb=t;await save(f)}const img=document.querySelector(`.thumb[data-open="${s.id}"] .aud`);if(img)img.outerHTML=`<img src="${t}" alt="">`}}
 }
@@ -910,7 +925,7 @@ $('#lib-list').addEventListener('click',async e=>{
   const o=e.target.closest('[data-open]'),st=e.target.closest('[data-star]'),dl=e.target.closest('[data-del]');
   if(o)openReport(o.dataset.open);
   else if(st){const s=await load(st.dataset.star);if(s){s.starred=!s.starred;await save(s);renderLib()}}
-  else if(dl){const s=await load(dl.dataset.del);if(s)askDelete(s.id,s.title,renderLib)}
+  else if(dl){const s=await load(dl.dataset.del);if(s)askDelete(s.id,dispTitle(s),renderLib)}
 });
 
 /* ---------- confirm dialog ---------- */
