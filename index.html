@@ -156,6 +156,7 @@ nav button.on{color:var(--accent)}
     <label class="f">Speech type
       <select id="s-type">
         <option value="tt">Table Topics (1–2 min)</option>
+        <option value="rw">Random word (1–2 min)</option>
         <option value="ice">Icebreaker (4–6 min)</option>
         <option value="std" selected>Prepared speech (5–7 min)</option>
         <option value="eval">Evaluation (2–3 min)</option>
@@ -166,8 +167,8 @@ nav button.on{color:var(--accent)}
     <div class="row" id="s-modewrap"><span style="font-size:15px">Mode</span><div class="seg" id="s-mode" style="width:190px" role="group" aria-label="Recording mode"><button type="button" data-m="audio" class="on">Audio</button><button type="button" data-m="video">Video</button></div></div>
     <div id="tt-opts" class="hidden" style="display:flex;flex-direction:column;gap:12px">
       <div class="row"><span style="font-size:15px">Topic</span><div class="seg" id="tt-say" style="width:220px" role="group" aria-label="How the topic is given"><button type="button" data-s="show">Text</button><button type="button" data-s="voice">Voice</button><button type="button" data-s="both" class="on">Both</button></div></div>
-      <label class="f">Topic theme (optional)<input type="text" id="tt-theme" placeholder="e.g. travel, Diwali. Empty = random" maxlength="60"></label>
-      <p class="lab" style="margin:0">Your topic is revealed when you tap Start, like at a real meeting.</p>
+      <label class="f" id="tt-themewrap">Topic theme (optional)<input type="text" id="tt-theme" placeholder="e.g. travel, Diwali. Empty = random" maxlength="60"></label>
+      <p class="lab" style="margin:0" id="tt-hint">Your topic is revealed when you tap Start, like at a real meeting.</p>
     </div>
     <p class="lab hidden" id="s-modehint" style="margin:0">Video uses your front camera and adds body-language feedback (eye contact, gestures, posture, expression). Videos take more space on your phone and a little longer to check.</p>
   </div>
@@ -256,7 +257,7 @@ nav button.on{color:var(--accent)}
 <script>
 (()=>{
 const $=s=>document.querySelector(s);
-const TYPES={tt:{name:'Table Topics',g:60,a:90,r:120},ice:{name:'Icebreaker',g:240,a:300,r:360},std:{name:'Prepared speech',g:300,a:360,r:420},eval:{name:'Evaluation',g:120,a:150,r:180},none:{name:'Practice',g:0,a:0,r:0}};
+const TYPES={tt:{name:'Table Topics',g:60,a:90,r:120},rw:{name:'Random word',g:60,a:90,r:120},ice:{name:'Icebreaker',g:240,a:300,r:360},std:{name:'Prepared speech',g:300,a:360,r:420},eval:{name:'Evaluation',g:120,a:150,r:180},none:{name:'Practice',g:0,a:0,r:0}};
 const DEFAULT_WORDS=['Um','Ah','Er','So','Like','You know','Repeat'];
 const fmt=s=>{s=Math.max(0,Math.round(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
 const fmtShort=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
@@ -332,7 +333,9 @@ PART A: TRANSCRIPT
 4. word_count = all spoken words, NOT counting fillers or repeated words.
 5. title = a short title of 2 to 5 words saying what the speech is about (for example "Lessons from my first job"). No quotes, no speech-type label. Use "Untitled" if there is no speech.
 
-${s.topic?`CONTEXT: This is a Table Topics answer (impromptu, 1 to 2 minutes) to the question: "${s.topic}". For the opening check, the topic is clear if the speaker addresses this question. Short answers are expected, so 2 main points is enough for main_points "yes".
+${s.topic&&s.type==='rw'?`CONTEXT: This is a Random Word speech (impromptu, 1 to 2 minutes) built around the word "${s.topic}". For the opening check, the topic is clear if the speaker brings this word in clearly near the start and builds the speech around it. Short answers are expected, so 2 main points is enough for main_points "yes".
+
+`:s.topic?`CONTEXT: This is a Table Topics answer (impromptu, 1 to 2 minutes) to the question: "${s.topic}". For the opening check, the topic is clear if the speaker addresses this question. Short answers are expected, so 2 main points is enough for main_points "yes".
 
 `:''}PART B: STRUCTURE (judge ONLY these five checks, using ONLY these rules)
 Do not judge content quality, humour, facts, opinions, grammar or vocabulary. Do not give advice.
@@ -531,6 +534,8 @@ async function ttFromAI(theme){
   }
   throw new Error('ai failed');
 }
+const RW_WORDS=['Lighthouse','Patience','Umbrella','Courage','Bridge','Mirror','Compass','Kite','Silence','Lantern','Monsoon','Ladder','Harvest','Echo','Passport','Chai','Puzzle','Anchor','Thunder','Window','Footprints','Candle','Balance','Rainbow','Clock','Seed','Map','Wave','Key','Journey','Gratitude','Honesty','Curiosity','Freedom','Kindness','Trust','Habit','Deadline','Shortcut','Applause','Horizon','Roots','Spark','Shadow','River','Mountain','Garden','Train','Bicycle','Notebook','Pencil','Letter','Gift','Festival','Market','Kitchen','Recipe','Spice','Mango','Coconut','Coffee','Breakfast','Rain','Sunrise','Sunset','Moon','Star','Ocean','Island','Desert','Forest','Village','City','Traffic','Neighbour','Teacher','Grandmother','Friendship','Promise','Secret','Surprise','Mistake','Victory','Failure','Second chance','Comfort zone','Teamwork','Leadership','Smile','Laughter','Music','Dance','Cricket','Marathon','Chess','Library','Museum','Camera','Photograph','Memory','Dream','Goal','Choice','Change','Time','Money','Home','Door','Wall','Roof','Bell','Whistle','Fireworks','Kite string','Blank page','First step','Last bus','Lost luggage','Old radio','Paper boat','Red light','Green signal','Wrong turn','Open road','Full moon','Morning walk','Night shift','Power cut','Wi-Fi','Password','Selfie','Headphones','Battery','Charger','Remote control','Elevator','Staircase','Escalator','Parachute','Telescope','Microscope','Magnet','Volcano','Iceberg','Feather','Pebble','Butterfly','Elephant','Peacock','Tortoise','Honeybee','Owl'];
+function rwPick(){const recent=new Set(ttRecent());const fresh=RW_WORDS.filter(w=>!recent.has(w));const pool=fresh.length?fresh:RW_WORDS;const w=pool[Math.floor(Math.random()*pool.length)];ttRemember(w);return {t:w,src:''}}
 async function ttPick(){
   const theme=$('#tt-theme').value.trim();let t,src;
   if(theme&&LS('ahc-key')){try{t=await ttFromAI(theme);src='Written by AI · '+theme}catch(e){t=ttFromBank(theme);src=t.matched?'Topic bank · '+t.c:'Topic bank · random (AI unavailable)'}}
@@ -541,7 +546,8 @@ let ttSay='both';
 function setSay(v){ttSay=['show','voice','both'].includes(v)?v:'both';document.querySelectorAll('#tt-say button').forEach(b=>b.classList.toggle('on',b.dataset.s===ttSay));try{const p=JSON.parse(localStorage.getItem('ahc-prefs')||'{}');p.say=ttSay;localStorage.setItem('ahc-prefs',JSON.stringify(p))}catch(e){}}
 document.querySelectorAll('#tt-say button').forEach(b=>b.addEventListener('click',()=>setSay(b.dataset.s)));
 try{setSay(JSON.parse(localStorage.getItem('ahc-prefs')||'{}').say||'both')}catch(e){}
-function ttShowCard(){$('#tt-opts').classList.toggle('hidden',$('#s-type').value!=='tt')}
+const isImpromptu=t=>t==='tt'||t==='rw';
+function ttShowCard(){const t=$('#s-type').value;$('#tt-opts').classList.toggle('hidden',!isImpromptu(t));$('#tt-themewrap').classList.toggle('hidden',t!=='tt');$('#tt-hint').textContent=t==='rw'?'Your random word is revealed when you tap Start. Speak about it for 1\u20132 minutes.':'Your topic is revealed when you tap Start, like at a real meeting.'}
 $('#s-type').addEventListener('change',()=>{ttShowCard();try{const p=JSON.parse(localStorage.getItem('ahc-prefs')||'{}');p.type=$('#s-type').value;localStorage.setItem('ahc-prefs',JSON.stringify(p))}catch(e){}});
 /* speech synthesis */
 function pickVoice(){try{const vs=speechSynthesis.getVoices();return vs.find(v=>/en-IN/i.test(v.lang))||vs.find(v=>/^en-GB/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang))||null}catch(e){return null}}
@@ -549,7 +555,8 @@ function unlockSpeech(){try{const u=new SpeechSynthesisUtterance(' ');u.volume=0
 function sayText(text){return new Promise(res=>{try{if(!window.speechSynthesis){res(false);return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);const v=pickVoice();if(v){u.voice=v;u.lang=v.lang}u.rate=.95;let done=false;const fin=ok=>{if(!done){done=true;res(ok)}};u.onend=()=>fin(true);u.onerror=()=>fin(false);speechSynthesis.speak(u);setTimeout(()=>fin(true),Math.min(20000,1500+text.length*90))}catch(e){res(false)}})}
 function stopSpeech(){try{speechSynthesis.cancel()}catch(e){}}
 /* reveal screen: resolves with the topic, or null if cancelled */
-function revealTopic(){
+function revealTopic(kind){
+  const rw=kind==='rw';$('#v-reveal .lab').textContent=rw?'Your random word':'Your Table Topic';$('#rv-new').textContent=rw?'New word':'New topic';
   return new Promise(resolve=>{
     let cur=null,cdTimer=null,gen=0,finished=false;
     const clearCd=()=>{clearInterval(cdTimer);cdTimer=null;$('#rv-count').textContent=''};
@@ -557,17 +564,17 @@ function revealTopic(){
     const countdown=my=>{let n=5;$('#rv-count').textContent='Timer starts in '+n+'…';cdTimer=setInterval(()=>{if(my!==gen)return;n--;if(n<=0){finish(cur)}else $('#rv-count').textContent='Timer starts in '+n+'…'},1000)};
     const present=async()=>{
       const my=++gen;clearCd();stopSpeech();
-      $('#rv-topic').textContent='Finding a topic…';$('#rv-topic').style.opacity='.5';$('#rv-src').textContent='';$('#rv-showtext').classList.add('hidden');
-      cur=await ttPick();if(my!==gen||finished)return;
+      $('#rv-topic').textContent=rw?'Picking a word…':'Finding a topic…';$('#rv-topic').style.fontSize=rw?'44px':'28px';$('#rv-topic').style.opacity='.5';$('#rv-src').textContent='';$('#rv-showtext').classList.add('hidden');
+      cur=rw?rwPick():await ttPick();if(my!==gen||finished)return;
       $('#rv-topic').style.opacity='1';$('#rv-src').textContent=cur.src;
       const showText=ttSay!=='voice';      $('#rv-topic').textContent=showText?cur.t:'Listen…';$('#rv-showtext').classList.toggle('hidden',showText);
       $('#rv-hear').classList.toggle('hidden',ttSay==='show');
-      if(ttSay!=='show'){await sayText(cur.t);if(my!==gen||finished)return}
+      if(ttSay!=='show'){await sayText(rw?'Your word is: '+cur.t:cur.t);if(my!==gen||finished)return}
       countdown(my);
     };
     $('#rv-go').onclick=()=>{if(cur)finish(cur)};
     $('#rv-new').onclick=()=>present();
-    $('#rv-hear').onclick=async()=>{if(!cur)return;const my=++gen;clearCd();await sayText(cur.t);if(my===gen&&!finished)countdown(my)};
+    $('#rv-hear').onclick=async()=>{if(!cur)return;const my=++gen;clearCd();await sayText(rw?'Your word is: '+cur.t:cur.t);if(my===gen&&!finished)countdown(my)};
     $('#rv-showtext').onclick=()=>{if(cur){$('#rv-topic').textContent=cur.t;$('#rv-showtext').classList.add('hidden')}};
     $('#rv-cancel').onclick=()=>finish(null);
     show('reveal');present();
@@ -600,7 +607,7 @@ $('#b-start').addEventListener('click',async()=>{
   const speaker=$('#s-speaker').value.trim();
   try{localStorage.setItem('ahc-prefs',JSON.stringify({speaker,type,rec:$('#s-rec').checked,mode:recMode}))}catch(e){}
   let topic='';
-  if(type==='tt'&&ttSay!=='show')unlockSpeech();
+  if(isImpromptu(type)&&ttSay!=='show')unlockSpeech();
   S={id:'s'+Date.now(),title,autoTitle:!userTitle,speaker,type,topic,timing:{g:T.g,a:T.a,r:T.r},words:words.slice(),counts:Object.fromEntries(words.map(w=>[w,0])),taps:[],startedAt:Date.now(),accum:0,t0:performance.now(),running:true,starred:false,audio:null,mime:'',analysis:null};
   chunks=[];rec=null;stream=null;vrec=null;vchunks=[];vmime='';
   $('#l-recstate').classList.add('hidden');
@@ -626,8 +633,8 @@ $('#b-start').addEventListener('click',async()=>{
     }catch(e){toast('Microphone not available — counting only');}
   }
   $('#v-live').classList.toggle('vid',videoOn);$('#l-vbox').classList.toggle('hidden',!videoOn);
-  if(type==='tt'){
-    const got=await revealTopic();
+  if(isImpromptu(type)){
+    const got=await revealTopic(type);
     if(!got){if(stream)stream.getTracks().forEach(t=>t.stop());S=null;show('setup');return}
     topic=got.t;S.topic=topic;
   }
@@ -767,8 +774,8 @@ async function startAI(id){
     const fresh=await load(id);if(fresh&&msg!=='NOKEY'){fresh.aiError=msg;await save(fresh)}if(fresh&&currentId===id&&current==='report')renderReport(fresh);
   }finally{clearTimeout(capTimer)}
 }
-const ABBR={tt:'TT',ice:'IB',std:'PS',eval:'EV',none:'PR'};
-function dispTitle(s){const a=ABBR[s.type]||'PR';let t=s.title||'';if(s.autoTitle&&!s.ai&&s.topic&&s.type==='tt')t=s.topic.length>48?s.topic.slice(0,46)+'…':s.topic;return a+' · '+t}
+const ABBR={tt:'TT',rw:'RW',ice:'IB',std:'PS',eval:'EV',none:'PR'};
+function dispTitle(s){const a=ABBR[s.type]||'PR';let t=s.title||'';if(s.autoTitle&&!s.ai&&s.topic&&s.type==='rw')t='Word: '+s.topic;else if(s.autoTitle&&!s.ai&&s.topic&&s.type==='tt')t=s.topic.length>48?s.topic.slice(0,46)+'…':s.topic;return a+' · '+t}
 function scoreOf(s){
   if(!s.ai)return null;const A=s.analysis&&!s.analysis.error?s.analysis:null;const AI=s.ai;const d=Math.max(s.duration||1,1);
   const st=v=>v&&v.status==='yes'?1:v&&v.status==='partly'?.5:0;const parts=[];
@@ -799,7 +806,7 @@ function renderReport(s){
   const T=s.timing;let timingTxt='—',timingCls='';
   if(T&&T.r){const ok=d>=T.g-30&&d<=T.r+30;timingTxt=ok?'Qualified':(d<T.g-30?'Under time':'Over time');timingCls=ok?'var(--green)':'var(--amber)'}
   let h='';
-  if(s.topic)h+=`<div class="card" style="gap:6px"><span class="lab">Table Topic</span><p style="margin:0;font-size:17px;line-height:1.45;font-weight:600;color:#F9FAFB">${esc(s.topic)}</p></div>`;
+  if(s.topic)h+=`<div class="card" style="gap:6px"><span class="lab">${s.type==='rw'?'Random word':'Table Topic'}</span><p style="margin:0;font-size:17px;line-height:1.45;font-weight:600;color:#F9FAFB">${esc(s.topic)}</p></div>`;
   if(s.audio){currentAudioUrl=URL.createObjectURL(s.video||s.audio);h+=s.video?`<div class="card" style="padding:8px"><video id="r-audio" controls playsinline preload="metadata" src="${currentAudioUrl}" style="width:100%;max-height:60vh;border-radius:12px;background:#000"></video></div>`:`<div class="card" style="padding:12px"><audio id="r-audio" controls preload="metadata" src="${currentAudioUrl}"></audio></div>`;
     const busy=(aiState[s.id]||{}).busy;const hasKey=!!LS('ahc-key');
     const lbl=busy?`Evaluating… <span class="mono" id="eval-timer">${fmtShort((Date.now()-(aiState[s.id].t0||Date.now()))/1000)}</span> · tap to stop`:'Try again';
