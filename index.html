@@ -711,9 +711,12 @@ async function analyse(blob){
   // close gaps < 200ms, remove blips < 100ms
   const fill=(arr,val,maxLen)=>{let i=0;while(i<arr.length){if(arr[i]===val){let j=i;while(j<arr.length&&arr[j]===val)j++;if(i>0&&j<arr.length&&(j-i)<=maxLen)for(let k=i;k<j;k++)arr[k]=!val;i=j}else i++}};
   fill(speech,false,10);fill(speech,true,5);
-  const first=speech.indexOf(true),last=speech.lastIndexOf(true);
+  const sustained=i=>{let c=0;for(let k=i;k<Math.min(speech.length,i+50);k++)if(speech[k])c++;return c>=30};
+  let first=-1;for(let i=0;i<speech.length;i++){if(speech[i]&&sustained(i)){first=i;break}}
+  let last=speech.lastIndexOf(true);if(first<0){first=speech.indexOf(true)}
+  const GRACE=5;
   const pauses=[];let speakFrames=0;
-  if(first>=0){let i=first;while(i<=last){if(!speech[i]){let j=i;while(j<=last&&!speech[j])j++;const d=(j-i)*F/SR;if(d>=0.5)pauses.push({t:i*F/SR,d:+d.toFixed(2)});i=j}else{speakFrames++;i++}}}
+  if(first>=0){let i=first;while(i<=last){if(!speech[i]){let j=i;while(j<=last&&!speech[j])j++;const d=(j-i)*F/SR;if(d>=0.5&&i*F/SR>=GRACE)pauses.push({t:i*F/SR,d:+d.toFixed(2)});i=j}else{speakFrames++;i++}}}
   const speakSec=speakFrames*F/SR;
   // pitch, 40 ms window, 30 ms hop, voiced frames only
   const W=640,H=480,minLag=Math.floor(SR/400),maxLag=Math.floor(SR/75);
@@ -743,7 +746,7 @@ async function analyse(blob){
   let endDrop=0;{const tail=vWin.slice(-2).filter(v=>v!==null);if(tail.length&&vMeans.length>3)endDrop=vAll-(tail.reduce((s,v)=>s+v,0)/tail.length)}
   // pitch contour for chart: per 5 s median
   const contour=[];for(let t=0;t<dur;t+=5){const ps=clean.filter(p=>p.t>=t&&p.t<t+5).map(p=>p.st).sort((a,b)=>a-b);contour.push(ps.length>4?ps[Math.floor(ps.length/2)]:null)}
-  return {dur,speakSec,pauses,variety:+variety.toFixed(2),pitchFrames:clean.length,flatWins,winSec,volStd:+volStd.toFixed(2),endDrop:+endDrop.toFixed(1),contour,firstSpeech:first>=0?first*F/SR:0,lastSpeech:last>=0?last*F/SR:dur};
+  return {v:2,dur,speakSec,pauses,variety:+variety.toFixed(2),pitchFrames:clean.length,flatWins,winSec,volStd:+volStd.toFixed(2),endDrop:+endDrop.toFixed(1),contour,firstSpeech:first>=0?first*F/SR:0,lastSpeech:last>=0?last*F/SR:dur};
 }
 
 /* ---------- report ---------- */
@@ -755,6 +758,7 @@ async function openReport(id,fresh){
   $('#r-sub').textContent=new Date(s.startedAt).toLocaleString([], {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+' · '+fmtShort(s.duration)+(s.speaker?' · '+s.speaker:'');
   setStar(s.starred);renderTag(s);
   if(currentAudioUrl){URL.revokeObjectURL(currentAudioUrl);currentAudioUrl=null}
+  if(s.audio&&s.analysis&&!s.analysis.error&&s.analysis.v!==2){s.analysis=null}
   if(s.audio&&!s.analysis){
     anT0=Date.now();$('#r-body').innerHTML=`<div class="card" style="align-items:center;padding:40px 18px"><span class="mono" style="font-size:14px;color:var(--muted)">Evaluating… <span id="eval-timer">0:00</span></span></div>`;
     try{s.analysis=await analyse(s.audio)}catch(e){s.analysis={error:true}}
@@ -848,10 +852,10 @@ function renderReport(s){
   // delivery
   const tips=[];
   if(A){
-    const ppm=A.pauses.length/Math.max(mins,0.1);
-    let pv=ppm<2?'Few':ppm>10?'Many':'Good';
-    let d1=meter('Pauses',`${A.pauses.length} · ${ppm.toFixed(1)}/min`,ppm/12*100,25,45,['Rushed','Purposeful','Hesitant']);
-    let pNote=`Pauses of half a second or more between phrases. ${longP.length?`${longP.length} lasted over 3 seconds; check whether those were deliberate.`:'None were over 3 seconds.'}`;
+    const spanMin=Math.max(((A.lastSpeech||d)-(A.firstSpeech||0))/60,0.1);
+    const real=A.pauses.filter(p=>p.d>=1);const ppm=(real.length+longP.length)/spanMin;
+    let d1=meter('Pauses',`${real.length} pause${real.length===1?'':'s'} \u00b7 ${ppm.toFixed(1)}/min`,ppm/14*100,14.3,42.9,['Rushed','Purposeful','Hesitant']);
+    let pNote=`Counts pauses of 1 second or more while you speak (quick breaths don\u2019t count, nor does your thinking time before you start). ${longP.length?`${longP.length} lasted over 3 seconds; check whether those were deliberate.`:'None were over 3 seconds.'}`;
     if(ppm<2)tips.push(['Breathe between ideas','You rarely paused. Add a 1–2 second pause after each key sentence so it lands.']);
     if(longP.length>=2)tips.push(['Long silences','A few pauses ran over 3 seconds, which can look like a lost thread. Keep a one-line outline in mind for each point.']);
     let varTxt=A.pitchFrames<40?'—':A.variety<2?'Flat':A.variety<3.2?'Medium':'Expressive';
