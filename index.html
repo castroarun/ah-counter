@@ -568,6 +568,7 @@ function unlockSpeech(){try{const u=new SpeechSynthesisUtterance(' ');u.volume=0
 function sayText(text){return new Promise(res=>{try{if(!window.speechSynthesis){res(false);return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);const v=pickVoice();if(v){u.voice=v;u.lang=v.lang}u.rate=.95;let done=false;const fin=ok=>{if(!done){done=true;res(ok)}};u.onend=()=>fin(true);u.onerror=()=>fin(false);speechSynthesis.speak(u);setTimeout(()=>fin(true),Math.min(20000,1500+text.length*90))}catch(e){res(false)}})}
 function stopSpeech(){try{speechSynthesis.cancel()}catch(e){}}
 /* reveal screen: resolves with the topic, or null if cancelled */
+let forcedTopic=null;
 function revealTopic(kind){
   const rw=kind==='rw';$('#v-reveal .lab').textContent=rw?'Your random word':'Your Table Topic';$('#rv-new').textContent=rw?'New word':'New topic';
   return new Promise(resolve=>{
@@ -578,7 +579,7 @@ function revealTopic(kind){
     const present=async()=>{
       const my=++gen;clearCd();stopSpeech();
       $('#rv-topic').textContent=rw?'Picking a word…':'Finding a topic…';$('#rv-topic').style.fontSize=rw?'44px':'28px';$('#rv-topic').style.opacity='.5';$('#rv-src').textContent='';$('#rv-showtext').classList.add('hidden');
-      cur=rw?rwPick():await ttPick();if(my!==gen||finished)return;
+      if(forcedTopic){cur={t:forcedTopic,src:'Same '+(rw?'word':'topic')+' again'};forcedTopic=null}else cur=rw?rwPick():await ttPick();if(my!==gen||finished)return;
       $('#rv-topic').style.opacity='1';$('#rv-src').textContent=cur.src;
       const showText=ttSay!=='voice';      $('#rv-topic').textContent=showText?cur.t:'Listen…';$('#rv-showtext').classList.toggle('hidden',showText);
       $('#rv-hear').classList.toggle('hidden',ttSay==='show');
@@ -880,14 +881,21 @@ function renderReport(s){
   if(rate>3)tips.unshift(['Swap fillers for silence','When you feel a filler coming, close your mouth and pause instead. A pause sounds confident; a filler sounds unsure.']);
   h+=aiCard(s,AI,d,tips);
   if(tips.length)h+=`<div class="card"><h2>Focus for next time</h2>${tips.slice(0,3).map(([a,b])=>`<div class="tip"><b>${esc(a)}</b>${esc(b)}</div>`).join('')}</div>`;
-  h+=`<div class="grid2"><button class="btn ghost sm" id="r-del" style="color:#FCA5A5">${TRASH_SVG} Delete</button><button class="btn sm" id="r-again">Practise again</button></div>`;
+  const imp=(s.type==='tt'||s.type==='rw')&&s.topic;
+  const REP='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>';
+  const NXT='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
+  h+=imp?`<div style="display:grid;grid-template-columns:52px 1fr 1fr;gap:10px"><button class="btn ghost sm" id="r-del" aria-label="Delete this recording" style="color:#FCA5A5;padding:0">${TRASH_SVG}</button><button class="btn ghost sm" id="r-same">${REP} Same ${s.type==='rw'?'word':'topic'}</button><button class="btn sm" id="r-next">New ${s.type==='rw'?'word':'topic'} ${NXT}</button></div>`
+    :`<div class="grid2"><button class="btn ghost sm" id="r-del" style="color:#FCA5A5">${TRASH_SVG} Delete</button><button class="btn sm" id="r-again">Practise again</button></div>`;
   $('#r-body').innerHTML=h;$('#r-body').style.cssText='display:flex;flex-direction:column;gap:16px';
   const au=$('#r-audio');
   const seek=t=>{if(!au)return;try{au.currentTime=Math.max(0,t-1.5);au.play().catch(()=>{})}catch(e){}};
   $('#r-body').querySelectorAll('.mk,.jump').forEach(el=>el.addEventListener('click',()=>seek(+el.dataset.t)));
   document.querySelectorAll('#ai-run,#ai-run2,#r-reeval').forEach(ab=>ab.addEventListener('click',async()=>{const cur=aiState[s.id];if(cur&&cur.busy){if(cur.ctrl)cur.ctrl.abort();return}if(!LS('ahc-key')){show('setup');setTimeout(()=>{$('#k-key').scrollIntoView({block:'center'});$('#k-key').focus()},100);return}if((aiState[s.id]||{}).busy)return;aiState[s.id]=null;s.ai=null;s.aiError=null;if(s.analysis&&s.analysis.error)s.analysis=null;await save(s);if(!s.analysis){openReport(s.id);return}startAI(s.id)}));
   $('#r-del').addEventListener('click',()=>askDelete(s.id,dispTitle(s),()=>show('lib')));
-  $('#r-again').addEventListener('click',()=>{$('#s-title').value=s.autoTitle?'':s.title;$('#s-type').value=s.type;show('setup')});
+  const ra=$('#r-again');if(ra)ra.addEventListener('click',()=>{$('#s-title').value=s.autoTitle?'':s.title;$('#s-type').value=s.type;show('setup')});
+  const goAgain=same=>{$('#s-title').value='';$('#s-type').value=s.type;ttShowCard();forcedTopic=same?s.topic:null;$('#b-start').click()};
+  const rs=$('#r-same');if(rs)rs.addEventListener('click',()=>goAgain(true));
+  const rn=$('#r-next');if(rn)rn.addEventListener('click',()=>goAgain(false));
 }
 
 function aiCard(s,AI,d,tips){
