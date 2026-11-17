@@ -396,31 +396,54 @@ async function callGemini(model,key,mime,b64,prompt,opt,signal){
   const clean=txt.replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'');
   return JSON.parse(clean.slice(clean.indexOf('{'),clean.lastIndexOf('}')+1));
 }
+function friendlyErr(last,what){const st=last&&last.status;if(st===429)return 'Your free Gemini limit is used up for now. Wait a minute (or until tomorrow if it keeps happening) and tap Try again.';if(st===500||st===503||st===502||st===504)return `Google\u2019s AI is busy right now (error ${st}). Tap Try again in a minute.`;if(st===403)return 'Your Gemini key isn\u2019t allowed to use this model (error 403). Check the key in Free AI check.';if(st===404)return 'The Gemini models this app uses aren\u2019t available for your key right now (error 404).';if(st===400)return `Google couldn\u2019t read this ${what} (error 400). Try recording it again.`;if(last instanceof SyntaxError)return 'Google sent back an answer the app couldn\u2019t read. Tap Try again.';return `Gemini could not check this ${what}. Tap Try again in a minute.`}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const mb=n=>(n/1048576).toFixed(1)+' MB';
+function xhrUpload(url,blob,signal,onProg){
+  return new Promise((res,rej)=>{
+    const x=new XMLHttpRequest();let lastProg=Date.now(),lastLoaded=0;const total=blob.size;
+    const stall=setInterval(()=>{if(lastLoaded<total&&Date.now()-lastProg>30000){x.abort();clearInterval(stall);const e=new Error('STALL');rej(e)}},2000);
+    const done=()=>{clearInterval(stall);if(signal)signal.removeEventListener('abort',ab)};
+    const ab=()=>{x.abort();done();rej(new Error('ABORTED'))};if(signal)signal.addEventListener('abort',ab);
+    x.open('POST',url);x.setRequestHeader('X-Goog-Upload-Offset','0');x.setRequestHeader('X-Goog-Upload-Command','upload, finalize');
+    x.upload.onprogress=e=>{if(e.loaded>lastLoaded){lastLoaded=e.loaded;lastProg=Date.now()}if(e.lengthComputable)onProg(e.loaded/e.total)};
+    x.onload=()=>{done();if(x.status>=200&&x.status<300){try{res(JSON.parse(x.responseText))}catch(err){rej(new Error('Bad upload reply'))}}else{const e=new Error('Upload failed ('+x.status+')');e.status=x.status;rej(e)}};
+    x.onerror=()=>{done();rej(new TypeError('network'))};
+    x.send(blob);
+  });
+}
 async function uploadToGemini(key,blob,mime,name,signal,onStep){
-  onStep(`Uploading video (${mb(blob.size)})… keep this screen open`);
+  onStep(`Uploading video (${mb(blob.size)})…`);
   const st=await fetch('https://generativelanguage.googleapis.com/upload/v1beta/files',{method:'POST',signal,headers:{'x-goog-api-key':key,'X-Goog-Upload-Protocol':'resumable','X-Goog-Upload-Command':'start','X-Goog-Upload-Header-Content-Length':String(blob.size),'X-Goog-Upload-Header-Content-Type':mime,'Content-Type':'application/json'},body:JSON.stringify({file:{display_name:name}})});
-  if(!st.ok){const e=new Error('Upload start failed ('+st.status+'): '+(await st.text()).slice(0,160));e.status=st.status;throw e}
+  if(!st.ok){const t=await st.text();const e=new Error(st.status===429?'QUOTA':'Upload start failed ('+st.status+'): '+t.slice(0,160));e.status=st.status;throw e}
   const url=st.headers.get('x-goog-upload-url');if(!url)throw new Error('NOUPLOADURL');
-  const up=await fetch(url,{method:'POST',signal,headers:{'X-Goog-Upload-Offset':'0','X-Goog-Upload-Command':'upload, finalize'},body:blob});
-  if(!up.ok){const e=new Error('Upload failed ('+up.status+')');e.status=up.status;throw e}
-  let f=(await up.json()).file;const t0=Date.now();
+  let f;
+  try{f=(await xhrUpload(url,blob,signal,p=>onStep(`Uploading video: ${Math.round(p*100)}% of ${mb(blob.size)}`))).file}
+  catch(e){if(e.message==='STALL')throw new Error(`The video upload stalled (no progress for 30 seconds). Your connection is too slow or unstable right now. Try on Wi-Fi and tap Try again.`);throw e}
+  const t0=Date.now();
   while(f&&f.state&&f.state!=='ACTIVE'){
-    if(f.state==='FAILED')throw new Error('Google could not process this video.');
-    if(Date.now()-t0>100000)throw new Error('Google took too long to process the video. Tap Try again in a minute.');
-    onStep('Google is processing the video…');await sleep(2500);
+    if(f.state==='FAILED')throw new Error('Google could not process this video file.');
+    if(Date.now()-t0>60000)throw new Error('Google took too long to prepare the video. Tap Try again in a minute.');
+    onStep(`Google is preparing the video… ${Math.round((Date.now()-t0)/1000)}s`);await sleep(2500);
     const g=await fetch(`${API}/${f.name}`,{headers:{'x-goog-api-key':key},signal});if(g.ok)f=await g.json();
   }
-  return {uri:f.uri,mime:f.mimeType||mime};
+  return {uri:f.uri,mime:f.mimeType||mime,name:f.name};
+}
+async function reuseUpload(key,s,signal){
+  const g=s.gfile;if(!g||Date.now()-g.at>40*3600*1000)return null;
+  try{const r=await fetch(`${API}/${g.name}`,{headers:{'x-goog-api-key':key},signal});if(!r.ok)return null;const f=await r.json();return f.state==='ACTIVE'?{uri:f.uri,mime:f.mimeType||g.mime,name:f.name}:null}catch(e){return null}
 }
 async function runVideoAI(s,key,models,onStep,signal){
   const vmime=(s.vmime||s.video.type||'video/webm').split(';')[0].trim();
   let file=null,inline=null;
-  try{file=await uploadToGemini(key,s.video,vmime,'speech-'+s.id,signal,onStep)}
+  onStep('Checking for an earlier upload…');file=await reuseUpload(key,s,signal);
+  if(file)onStep('Using the video already uploaded…');
+  else try{file=await uploadToGemini(key,s.video,vmime,'speech-'+s.id,signal,onStep);try{const f=await load(s.id);if(f){f.gfile={name:file.name,mime:file.mime,at:Date.now()};await save(f)}}catch(e){}}
   catch(e){
     if(signal&&signal.aborted)throw new Error('ABORTED');
     if(e.status===400&&/API key/i.test(e.message))throw new Error('Gemini rejected the key.');
+    if(e.message==='QUOTA')throw new Error('Your free Gemini limit is used up for now. Wait a minute (or until tomorrow if it keeps happening) and tap Try again.');
+    if(/stalled|too long|could not process/.test(e.message))throw e;
     if(s.video.size<14*1024*1024){onStep('Preparing video…');inline={mime:vmime,b64:await blobToB64(s.video)}}
     else throw new Error(e instanceof TypeError?`Couldn't upload the video (${mb(s.video.size)}). Try on Wi-Fi, keep this screen open, and tap Try again.`:(e.message==='NOUPLOADURL'?'This browser could not upload the video. Try Chrome or Safari.':e.message));
   }
@@ -439,8 +462,7 @@ async function runVideoAI(s,key,models,onStep,signal){
       break;
     }
   }
-  if(last&&last.status===429)throw new Error('Free-tier limit reached for now. Wait a minute and tap Try again.');
-  throw new Error('Gemini could not analyse this video. '+(last?String(last.message).slice(0,160):''));
+  throw new Error(friendlyErr(last,'video'));
 }
 async function runAI(s,onStep,signal){
   const key=LS('ahc-key');if(!key)throw new Error('NOKEY');
@@ -479,8 +501,7 @@ async function runAI(s,onStep,signal){
       break;
     }
   }
-  if(last&&last.status===429)throw new Error('Free-tier limit reached for now. Wait a minute and tap Try again.');
-  throw new Error('Gemini could not process this recording. '+(last?String(last.message).slice(0,160):''));
+  throw new Error(friendlyErr(last,'recording'));
   }finally{document.removeEventListener('visibilitychange',onVis)}
 }
 function browserName(){const u=navigator.userAgent;if(/WhatsApp/i.test(u))return 'WhatsApp in-app browser';if(/Instagram/i.test(u))return 'Instagram in-app browser';if(/FBAN|FBAV/i.test(u))return 'Facebook in-app browser';if(/; wv\)/.test(u))return 'an in-app browser';if(/SamsungBrowser/i.test(u))return 'Samsung Internet';if(/EdgA|Edg\//.test(u))return 'Edge';if(/CriOS|Chrome\//.test(u))return 'Chrome';if(/Safari/.test(u))return 'Safari';return 'this browser'}
@@ -761,7 +782,7 @@ async function openReport(id,fresh){
   if(currentAudioUrl){URL.revokeObjectURL(currentAudioUrl);currentAudioUrl=null}
   if(s.audio&&s.analysis&&!s.analysis.error&&s.analysis.v!==2){s.analysis=null}
   if(s.audio&&!s.analysis){
-    anT0=Date.now();$('#r-body').innerHTML=`<div class="card" style="align-items:center;padding:40px 18px"><span class="mono" style="font-size:14px;color:var(--muted)">Evaluating… <span id="eval-timer">0:00</span></span></div>`;
+    anT0=Date.now();$('#r-body').innerHTML=`<button class="btn sm" disabled style="opacity:.9"><span class="recdot" style="background:#111827"></span>Evaluating audio\u2026 <span class="mono" id="eval-timer">0:00</span></button><div class="card" style="gap:6px;padding:14px 16px;border-color:#5C4512"><span style="font-size:15px;font-weight:600;color:#F9FAFB">Measuring pauses, voice and volume on your phone\u2026</span><span class="lab">${s.ai||!LS('ahc-key')?'Takes a few seconds.':(s.video?'Then the video is checked by the AI. It gives up by itself at '+fmtShort(capFor(s)/1000)+'.':'Then the AI checks your words. It gives up by itself at '+fmtShort(capFor(s)/1000)+'.')}</span></div>`;$('#r-body').style.cssText='display:flex;flex-direction:column;gap:16px';
     try{s.analysis=await analyse(s.audio)}catch(e){s.analysis={error:true}}
     anT0=0;
     await save(s);
@@ -772,7 +793,7 @@ async function openReport(id,fresh){
 }
 const aiState={};let anT0=0;
 setInterval(()=>{if(current!=='report')return;const el=document.getElementById('eval-timer');if(!el)return;const st=aiState[currentId];const t0=(st&&st.busy&&st.t0)||anT0;if(t0)el.textContent=fmtShort((Date.now()-t0)/1000)},1000);
-const HARD_CAP_MS=90000;
+const HARD_CAP_MS=90000,VIDEO_CAP_MS=180000;const capFor=s=>s&&s.video?VIDEO_CAP_MS:HARD_CAP_MS;
 async function startAI(id){
   if(aiState[id]&&aiState[id].busy)return;
   const ctrl=new AbortController();
@@ -780,14 +801,14 @@ async function startAI(id){
   const s=await load(id);if(!s){aiState[id]={busy:false};return}
   if(currentId===id)renderReport(s);
   let capTimer;
-  const cap=new Promise((_,rej)=>{capTimer=setTimeout(()=>{ctrl.cap=true;ctrl.abort();rej(new Error('ABORTED'))},s.video?240000:HARD_CAP_MS);ctrl.signal.addEventListener('abort',()=>rej(new Error('ABORTED')))});
+  const cap=new Promise((_,rej)=>{capTimer=setTimeout(()=>{ctrl.cap=true;ctrl.abort();rej(new Error('ABORTED'))},capFor(s));ctrl.signal.addEventListener('abort',()=>rej(new Error('ABORTED')))});
   try{
-    const out=await Promise.race([runAI(s,step=>{aiState[id].step=step;const el=document.getElementById('ai-step');if(el&&currentId===id)el.textContent=step},ctrl.signal),cap]);
+    const out=await Promise.race([runAI(s,step=>{aiState[id].step=step;const el=document.getElementById('st-step');if(el&&currentId===id)el.textContent=step},ctrl.signal),cap]);
     const t0=aiState[id].t0;out.tookSec=Math.round((Date.now()-t0)/1000);const fresh=await load(id);if(!fresh)return;fresh.ai=out;fresh.aiError=null;if(fresh.autoTitle&&out.title&&!/^untitled$/i.test(out.title.trim()))fresh.title=String(out.title).trim().replace(/^["“”']+|["“”'.]+$/g,'').slice(0,60);await save(fresh);aiState[id]={busy:false};
     if(currentId===id&&current==='report')renderReport(fresh);
   }catch(e){
     let msg=e.message;
-    if(msg==='ABORTED')msg=ctrl.cap?`Stopped after ${fmtShort((s.video?240000:HARD_CAP_MS)/1000)} with no answer from Google. Your connection may be too slow or unstable right now. Try on Wi-Fi and tap Try again.`:'You stopped the check. Tap Try again whenever you’re ready.';
+    if(msg==='ABORTED')msg=ctrl.cap?`Stopped after ${fmtShort(capFor(s)/1000)}: ${aiState[id]&&aiState[id].step?'it was still on \u201c'+aiState[id].step.replace(/\u2026$/,'')+'\u201d. ':''}Your connection may be too slow right now, or Google is busy. Try on Wi-Fi and tap Try again.`:'You stopped the check. Tap Try again whenever you’re ready.';
     aiState[id]={busy:false,err:msg==='NOKEY'?'':msg};
     const fresh=await load(id);if(fresh&&msg!=='NOKEY'){fresh.aiError=msg;await save(fresh)}if(fresh&&currentId===id&&current==='report')renderReport(fresh);
   }finally{clearTimeout(capTimer)}
@@ -827,8 +848,10 @@ function renderReport(s){
   if(s.topic)h+=`<div class="card" style="gap:6px"><span class="lab">${s.type==='rw'?'Random word':'Table Topic'}</span><p style="margin:0;font-size:17px;line-height:1.45;font-weight:600;color:#F9FAFB">${esc(s.topic)}</p></div>`;
   if(s.audio){currentAudioUrl=URL.createObjectURL(s.video||s.audio);h+=s.video?`<div class="card" style="padding:8px"><video id="r-audio" controls playsinline preload="metadata" src="${currentAudioUrl}" style="width:100%;max-height:60vh;border-radius:12px;background:#000"></video></div>`:`<div class="card" style="padding:12px"><audio id="r-audio" controls preload="metadata" src="${currentAudioUrl}"></audio></div>`;
     const busy=(aiState[s.id]||{}).busy;const hasKey=!!LS('ahc-key');
-    const lbl=busy?`Evaluating… <span class="mono" id="eval-timer">${fmtShort((Date.now()-(aiState[s.id].t0||Date.now()))/1000)}</span> · tap to stop`:'Try again';
-    h+=`<button class="btn ${AI?'ghost ':''}sm" id="r-reeval"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>${lbl}</button>`}
+    const lbl=busy?`${s.video?'Evaluating video':'AI check'}\u2026 <span class="mono" id="eval-timer">${fmtShort((Date.now()-(aiState[s.id].t0||Date.now()))/1000)}</span> · tap to stop`:'Try again';
+    h+=`<button class="btn ${AI?'ghost ':''}sm" id="r-reeval"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>${lbl}</button>`;
+    if(busy){const st=aiState[s.id]||{};h+=`<div class="card" id="r-status" style="gap:6px;padding:14px 16px;border-color:#5C4512"><span id="st-step" style="font-size:15px;font-weight:600;color:#F9FAFB">${esc(st.step||'Starting…')}</span><span class="lab">${s.video?'Usually 20\u201390 seconds':'Usually 10\u201340 seconds'}. Gives up by itself at ${fmtShort(capFor(s)/1000)} and tells you why. Keep this screen open.</span></div>`}
+    else if(aiErr&&!AI){h+=`<div class="card" id="r-status" style="gap:6px;padding:14px 16px;border-color:#7F1D1D;background:#2A1414"><span style="font-size:15px;font-weight:600;color:#FECACA">Couldn\u2019t finish the AI check</span><span style="font-size:14px;line-height:1.5;color:#FCA5A5">${esc(aiErr)}</span></div>`}}
   else h+=`<p class="note" style="margin:0">No audio was saved for this speech, so it can't be re-evaluated.</p>`;
   const longP=A?A.pauses.filter(p=>p.d>=3):[];
   h+=`<div class="grid3"><div class="stat"><span class="lab">Fillers</span><span class="v">${pendingAI?'…':noCount?'—':total}</span><span class="lab">${pendingAI?'AI counting':noCount?'not counted':rate.toFixed(1)+' / min'}</span></div><div class="stat"><span class="lab">Time</span><span class="v">${fmtShort(d)}</span><span class="lab" style="color:${timingCls||'var(--muted)'}">${timingTxt}</span></div><div class="stat"><span class="lab">Pauses</span><span class="v">${A?A.pauses.length:'—'}</span><span class="lab">${A?(longP.length?longP.length+' too long':'none too long'):'no audio'}</span></div></div>`;
@@ -903,9 +926,10 @@ function aiCard(s,AI,d,tips){
   const head=`<div class="row"><h2>Transcript, pace &amp; structure</h2><span class="lab">${AI?esc((AI.model||'Gemini').replace(/^gemini-/,'Gemini ').replace(/-/g,' '))+' · rules '+esc(AI.rules||'v1'):'AI check'}</span></div>`;
   if(!s.audio)return `<div class="card">${head}<p class="note" style="margin:0">Needs a recording. Turn on “Record audio” before your next speech.</p></div>`;
   if(!AI){
-    if(st.busy)return `<div class="card">${head}<p class="note mono" id="ai-step" style="margin:0">${esc(st.step||'Working…')}</p><p class="lab" style="margin:0">Usually 5–30 seconds. Keep this screen open. Tap the button at the top to stop. It gives up on its own after 1½ minutes.</p></div>`;
+    if(st.busy)return `<div class="card">${head}<p class="note" style="margin:0">Results will appear here when the check finishes.</p></div>`;
+    if(false)return `<div class="card">${head}<p class="note mono" id="ai-step" style="margin:0">${esc(st.step||'Working…')}</p><p class="lab" style="margin:0">Usually 5–30 seconds. Keep this screen open. Tap the button at the top to stop. It gives up on its own after 1½ minutes.</p></div>`;
     if(!LS('ahc-key'))return `<div class="card">${head}<p class="note" style="margin:0">No Gemini key is saved on this phone yet. Keys are saved per device, so add it here too to have fillers counted from your recording, plus a transcript, pace and structure check.</p></div>`;
-    return `<div class="card">${head}${st.err?`<p class="err" style="margin:0">${esc(st.err)}</p>`:'<p class="note" style="margin:0">Not analysed yet.</p>'}<p class="lab" style="margin:0">Tap Try again at the top.</p></div>`;
+    return `<div class="card">${head}${st.err?'<p class="note" style="margin:0">Not checked yet. See the message at the top.</p>':'<p class="note" style="margin:0">Not analysed yet.</p>'}<p class="lab" style="margin:0">Tap Try again at the top.</p></div>`;
   }
   const wpm=(AI.word_count||0)/Math.max(d/60,0.1);
   const paceTxt=wpm<100?'Slow':wpm>170?'Fast':wpm<120?'Unhurried':wpm>160?'Brisk':'Good';
