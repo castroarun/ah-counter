@@ -161,7 +161,6 @@ nav button.on{color:var(--accent)}
   <div class="row"><div><div class="lab">Toastmasters practice</div><h1>Ah Counter</h1></div></div>
   <div class="card">
     <label class="f">Speech title<input type="text" id="s-title" placeholder="Leave empty and the AI will name it"></label>
-    <label class="f">Speaker<input type="text" id="s-speaker" placeholder="Your name"></label>
     <label class="f">Speech type
       <select id="s-type">
         <option value="tt">Table Topics (1–2 min)</option>
@@ -297,7 +296,7 @@ function saveWords(){try{localStorage.setItem('ahc-words',JSON.stringify(words))
 function renderWords(){const ws=document.getElementById('w-state');if(ws)ws.textContent=words.length+' words on';$('#s-words').innerHTML=words.map((w,i)=>`<span class="chip">${esc(w)}<button class="x" data-i="${i}" aria-label="Remove ${esc(w)}">×</button></span>`).join('')}
 $('#s-words').addEventListener('click',e=>{const b=e.target.closest('.x');if(!b)return;if(words.length<=1){toast('Keep at least one word');return}words.splice(+b.dataset.i,1);saveWords();renderWords()});
 $('#s-addform').addEventListener('submit',e=>{e.preventDefault();const v=$('#s-new').value.trim();if(!v)return;if(words.some(w=>w.toLowerCase()===v.toLowerCase())){toast('Already in the list');return}if(words.length>=10){toast('Up to 10 words');return}words.push(v.slice(0,20));$('#s-new').value='';saveWords();renderWords()});
-try{const p=JSON.parse(localStorage.getItem('ahc-prefs')||'{}');if(p.speaker)$('#s-speaker').value=p.speaker;if(p.type)$('#s-type').value=p.type;if(p.rec===false)$('#s-rec').checked=false}catch(e){}
+try{const p=JSON.parse(localStorage.getItem('ahc-prefs')||'{}');if(p.type)$('#s-type').value=p.type;if(p.rec===false)$('#s-rec').checked=false}catch(e){}
 
 /* ---------- Gemini key ---------- */
 const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}};
@@ -613,8 +612,8 @@ function elapsed(){if(!S)return 0;return (S.accum+(S.running?(performance.now()-
 $('#b-start').addEventListener('click',async()=>{
   const type=$('#s-type').value,T=TYPES[type];
   const userTitle=$('#s-title').value.trim();const title=userTitle||T.name;
-  const speaker=$('#s-speaker').value.trim();
-  try{localStorage.setItem('ahc-prefs',JSON.stringify({speaker,type,rec:$('#s-rec').checked,mode:recMode}))}catch(e){}
+  const speaker='';
+  try{localStorage.setItem('ahc-prefs',JSON.stringify({type,rec:$('#s-rec').checked,mode:recMode}))}catch(e){}
   let topic='';
   if(isImpromptu(type)&&ttSay!=='show')unlockSpeech();
   S={id:'s'+Date.now(),title,autoTitle:!userTitle,speaker,type,topic,timing:{g:T.g,a:T.a,r:T.r},words:words.slice(),counts:Object.fromEntries(words.map(w=>[w,0])),taps:[],startedAt:Date.now(),accum:0,t0:performance.now(),running:true,starred:false,audio:null,mime:'',analysis:null};
@@ -651,7 +650,7 @@ $('#b-start').addEventListener('click',async()=>{
   if(videoOn){const v=$('#l-video');v.srcObject=stream;try{v.play()}catch(e){}const sid=S.id;setTimeout(()=>{if(S&&S.id===sid)S.thumb=grabThumb(v)},2500)}
   S.startedAt=Date.now();S.t0=performance.now();
   try{wake=await navigator.wakeLock.request('screen')}catch(e){wake=null}
-  $('#l-title').textContent=title;{let el=document.getElementById('l-topic');if(!el){el=document.createElement('p');el.id='l-topic';el.style.cssText='margin:0;font-size:18px;line-height:1.4;font-weight:600;color:#F9FAFB;text-align:center';$('.ringbox').before(el)}el.textContent=topic?'“'+topic+'”':'';el.classList.toggle('hidden',!topic)}$('#l-type').textContent=TYPES[type].name+(speaker?' · '+speaker:'');
+  $('#l-title').textContent=title;{let el=document.getElementById('l-topic');if(!el){el=document.createElement('p');el.id='l-topic';el.style.cssText='margin:0;font-size:18px;line-height:1.4;font-weight:600;color:#F9FAFB;text-align:center';$('.ringbox').before(el)}el.textContent=topic?'“'+topic+'”':'';el.classList.toggle('hidden',!topic)}$('#l-type').textContent=userTitle?TYPES[type].name:'';
   const sg=S.timing;$('#l-signals').innerHTML=sg.r?`<span class="sig g">Green ${fmtShort(sg.g)}</span><span class="sig a">Yellow ${fmtShort(sg.a)}</span><span class="sig r">Red ${fmtShort(sg.r)}</span>`:'';
   $('#l-buttons').innerHTML=S.words.map(w=>`<button class="fb" data-w="${esc(w)}"><span>${esc(w)}</span><span class="n">0</span></button>`).join('');
   $('#b-pause').textContent='Pause';lastSig='';
