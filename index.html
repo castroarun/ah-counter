@@ -333,9 +333,10 @@ async function wavFrom(blob,forceSR){
   for(let i=0;i<x.length;i++){const s=Math.max(-1,Math.min(1,x[i]));v.setInt16(44+i*2,s<0?s*0x8000:s*0x7FFF,true)}
   return new Blob([ab],{type:'audio/wav'});
 }
-const RULES_VERSION='v6';
+const RULES_VERSION='v7';
 const PINNED_MODELS=['gemini-3.5-flash','gemini-3.5-flash-lite','gemini-3.8-flash','gemini-3.1-flash-lite'];
 function buildPrompt(s){
+  const imp=(s.type==='tt'||s.type==='rw');
   return `You are the Ah-Counter for a Toastmasters club. Listen to this speech recording and follow these rules exactly.
 
 PART A: TRANSCRIPT
@@ -349,14 +350,25 @@ ${s.topic&&s.type==='rw'?`CONTEXT: This is a Random Word speech (impromptu, 1 to
 
 `:s.topic?`CONTEXT: This is a Table Topics answer (impromptu, 1 to 2 minutes) to the question: "${s.topic}". For the opening check, the topic is clear if the speaker addresses this question. Short answers are expected, so 2 main points is enough for main_points "yes".
 
-`:''}PART B: STRUCTURE (judge ONLY these five checks, using ONLY these rules)
+`:''}${imp?`PART B: FRAMEWORK (this is an impromptu 1 to 2 minute answer; judge ONLY with these rules)
+Do not judge content quality, humour, facts, opinions, grammar or vocabulary.
+1. Decide which framework the answer follows:
+   - "PREP": steps ["Point","Reason","Example","Point again"] (a clear point, a reason for it, a specific example, and the point restated at the end)
+   - "Past-Present-Future": steps ["Past","Present","Future"]
+   - "Problem-Solution-Benefit": steps ["Problem","Solution","Benefit"]
+   - "Story": steps ["Setup","Conflict","Turn","Lesson"]
+   If the answer clearly follows one of these, set framework.name to it and framework.fits to true. If none fits clearly, set framework.name to "PREP", framework.fits to false, and judge the answer against the PREP steps. PREP is the default.
+2. framework.steps: one entry per step of that framework, in order, using EXACTLY the step names above. status "yes" if the step is clearly there, "partly" if weak or vague, "no" if missing. note: ONE short factual sentence addressed as "you" saying what you did for that step.
+3. framework.opening: "yes" if the first 10 seconds grab attention (a bold claim, a vivid scene, a question to the audience, or a surprising number) and do NOT start with "So, the topic is…" or by repeating the question. "partly" if it starts plainly but gets into the answer quickly. "no" if it restates the question or starts with filler.
+4. framework.closing: "yes" if there is a deliberate final line (a callback to the opening, a one-line lesson, a call to action or a twist) and a clean stop. "partly" if the end is clear but weak. "no" if it trails off or ends with "so yeah, that's it" or "thank you" alone.
+5. framework.reframe: if fits is false OR any step is "no", give exactly 4 short lines showing how the speaker could have framed THIS answer with PREP, using their own content: "Point: …", "Reason: …", "Example: …", "Point again: …". Each under 18 words. Otherwise return an empty list.`:`PART B: STRUCTURE (judge ONLY these five checks, using ONLY these rules)
 Do not judge content quality, humour, facts, opinions, grammar or vocabulary. Do not give advice.
 - opening: "yes" if, within the first 30 seconds, the speaker uses an attention device (a question to the audience, a short story, a quote, a striking fact or number, or a vivid image) AND the topic becomes clear. "partly" if only one of those two happens. "no" if neither happens (for example it starts with "this is a test", an apology, or a plain greeting and nothing else).
 - main_points: count distinct main points (separate ideas, lessons, reasons or steps the speaker develops). "yes" if 2 to 4 points that are each clearly identifiable. "partly" if only 1 point, more than 4, or points that blur together. "no" if no identifiable point.
 - transitions: "yes" if there is a clear verbal bridge before EVERY main point after the first ("first… second…", "that brings me to…", "my next lesson…"). "partly" if some points have a bridge and some do not. "no" if none do, or there are fewer than 2 points.
 - conclusion: "yes" if the speaker signals the end AND recaps the points or ties back to the opening. "partly" if only one of those. "no" if the speech just stops, or ends only with "that's it" / "thank you".
 - takeaway: "yes" if the last part states one clear message, lesson or call to action. "partly" if a message is only implied. "no" if there is none.
-For each check write "note": ONE short factual sentence describing what the speaker did, addressed as "you" (for example "You opened by asking the audience a question."). Observation only, no advice, no praise, no criticism of content.
+For each check write "note": ONE short factual sentence describing what the speaker did, addressed as "you" (for example "You opened by asking the audience a question."). Observation only, no advice, no praise, no criticism of content.`}
 
 ${s.video?`PART C: BODY LANGUAGE (this is a video; judge ONLY what you SEE, using ONLY these rules; observation only, no advice)
 - eye_contact (never "na"): "yes" if the speaker looks at the camera for most of the speech (roughly 70% or more). "partly" if they often look away (down, sideways, at notes). "no" if they rarely look at the camera.
@@ -368,17 +380,17 @@ For each write "note": ONE short factual sentence addressed as "you", with an ap
 
 `:''}Return ONLY JSON matching the schema. If there is no speech, return an empty transcript, an empty fillers list and "no" for every check.`;
 }
-const SCHEMA_V=(video)=>{const chkNA={type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no','na']},note:{type:'STRING'}},required:['status','note']};const chk={type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no']},note:{type:'STRING'}},required:['status','note']};
+const SCHEMA_V=(video,imp)=>{const chkNA={type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no','na']},note:{type:'STRING'}},required:['status','note']};const chk={type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no']},note:{type:'STRING'}},required:['status','note']};
   return {type:'OBJECT',properties:{title:{type:'STRING'},transcript:{type:'STRING'},word_count:{type:'INTEGER'},
   fillers:{type:'ARRAY',items:{type:'OBJECT',properties:{word:{type:'STRING'},type:{type:'STRING',enum:['filler','repeat']},time_sec:{type:'NUMBER'}},required:['word','type','time_sec']}},
-  structure:{type:'OBJECT',properties:{opening:chk,main_points:{type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no']},count:{type:'INTEGER'},points:{type:'ARRAY',items:{type:'STRING'}},note:{type:'STRING'}},required:['status','count','points','note']},transitions:chk,conclusion:chk,takeaway:chk},required:['opening','main_points','transitions','conclusion','takeaway']},
+  ...(imp?{framework:{type:'OBJECT',properties:{name:{type:'STRING',enum:['PREP','Past-Present-Future','Problem-Solution-Benefit','Story']},fits:{type:'BOOLEAN'},steps:{type:'ARRAY',items:{type:'OBJECT',properties:{step:{type:'STRING'},status:{type:'STRING',enum:['yes','partly','no']},note:{type:'STRING'}},required:['step','status','note']}},opening:chk,closing:chk,reframe:{type:'ARRAY',items:{type:'STRING'}}},required:['name','fits','steps','opening','closing','reframe']}}:{structure:{type:'OBJECT',properties:{opening:chk,main_points:{type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no']},count:{type:'INTEGER'},points:{type:'ARRAY',items:{type:'STRING'}},note:{type:'STRING'}},required:['status','count','points','note']},transitions:chk,conclusion:chk,takeaway:chk},required:['opening','main_points','transitions','conclusion','takeaway']}}),
   ...(video?{body:{type:'OBJECT',properties:{eye_contact:chk,gestures:chkNA,posture:chkNA,expression:chk},required:['eye_contact','gestures','posture','expression']}}:{})},
-  required:['title','transcript','word_count','fillers','structure',...(video?['body']:[])]}};
+  required:['title','transcript','word_count','fillers',imp?'framework':'structure',...(video?['body']:[])]}};
 const SCHEMA=SCHEMA_V(false);
 async function callGemini(model,key,mime,b64,prompt,opt,signal){
   opt=opt||{schema:true,thinking:true};const part=opt.file?{file_data:{mime_type:mime,file_uri:opt.file}}:{inline_data:{mime_type:mime,data:b64}};
   const gc={temperature:0,topP:1,seed:7,responseMimeType:'application/json'};
-  if(opt.schema)gc.responseSchema=SCHEMA_V(!!opt.video);if(opt.video&&opt.lowres!==false)gc.mediaResolution='MEDIA_RESOLUTION_LOW';
+  if(opt.schema)gc.responseSchema=SCHEMA_V(!!opt.video,!!opt.imp);if(opt.video&&opt.lowres!==false)gc.mediaResolution='MEDIA_RESOLUTION_LOW';
   if(opt.thinking)gc.thinkingConfig=/^gemini-2\.5/.test(model)?{thinkingBudget:0}:{thinkingLevel:'minimal'};
   const body={contents:[{role:'user',parts:[part,{text:prompt}]}],generationConfig:gc};
   const ac=new AbortController();const tm=setTimeout(()=>ac.abort(),opt.video?120000:45000);const lk=()=>ac.abort();if(signal)signal.addEventListener('abort',lk);
@@ -452,8 +464,8 @@ async function runVideoAI(s,key,models,onStep,signal){
     const m=models[mi];onStep(`Watching your video with ${m}…`);
     try{
       if(signal&&signal.aborted)throw new Error('ABORTED');
-      const out=file?await callGemini(m,key,file.mime,null,buildPrompt(s),{schema:true,thinking:true,video:true,file:file.uri},signal)
-                    :await callGemini(m,key,inline.mime,inline.b64,buildPrompt(s),{schema:true,thinking:true,video:true},signal);
+      const out=file?await callGemini(m,key,file.mime,null,buildPrompt(s),{schema:true,thinking:true,video:true,imp:s.type==='tt'||s.type==='rw',file:file.uri},signal)
+                    :await callGemini(m,key,inline.mime,inline.b64,buildPrompt(s),{schema:true,thinking:true,video:true,imp:s.type==='tt'||s.type==='rw'},signal);
       out.model=m;out.rules=RULES_VERSION;out.at=Date.now();out.video=true;return out;
     }catch(e){
       last=e;if(e.message==='ABORTED')throw e;
@@ -485,7 +497,7 @@ async function runAI(s,onStep,signal){
     const m=models[mi];const p=await payload(vi);
     onStep(`Sending ${mb(p.size)} to ${m}… keep this screen open`);
     const ta=performance.now();
-    try{if(signal&&signal.aborted)throw new Error('ABORTED');const out=await callGemini(m,key,p.mime,p.b64,buildPrompt(s),null,signal);out.model=m;out.rules=RULES_VERSION;out.at=Date.now();return out}
+    try{if(signal&&signal.aborted)throw new Error('ABORTED');const out=await callGemini(m,key,p.mime,p.b64,buildPrompt(s),{schema:true,thinking:true,imp:s.type==='tt'||s.type==='rw'},signal);out.model=m;out.rules=RULES_VERSION;out.at=Date.now();return out}
     catch(e){
       last=e;if(e.message==='ABORTED')throw e;
       if(e.status===400&&/API key/i.test(e.message))throw new Error('Gemini rejected the key.');
@@ -819,7 +831,8 @@ function scoreOf(s){
   if(!s.ai)return null;const A=s.analysis&&!s.analysis.error?s.analysis:null;const AI=s.ai;const d=Math.max(s.duration||1,1);
   const st=v=>v&&v.status==='yes'?1:v&&v.status==='partly'?.5:0;const parts=[];
   const fr=(AI.fillers||[]).length/Math.max(d/60,.1);parts.push([2,fr<=1?1:fr<=2?.8:fr<=3?.6:fr<=5?.35:.1]);
-  const S=AI.structure||{};const sk=['opening','main_points','transitions','conclusion','takeaway'].filter(k=>S[k]);if(sk.length)parts.push([3,sk.reduce((a,k)=>a+st(S[k]),0)/sk.length]);
+  if(AI.framework){const F=AI.framework;const it=[F.opening,...(F.steps||[]),F.closing].filter(Boolean);if(it.length)parts.push([3,it.reduce((a,v)=>a+st(v),0)/it.length])}
+  else{const S=AI.structure||{};const sk=['opening','main_points','transitions','conclusion','takeaway'].filter(k=>S[k]);if(sk.length)parts.push([3,sk.reduce((a,k)=>a+st(S[k]),0)/sk.length]);}
   const wpm=(AI.word_count||0)/Math.max(d/60,.1);if(AI.word_count)parts.push([1,wpm>=120&&wpm<=160?1:(wpm>=100&&wpm<=175)?.6:.3]);
   if(s.timing&&s.timing.r)parts.push([1,d>=s.timing.g-30&&d<=s.timing.r+30?1:.3]);
   if(A){const lp=A.pauses.filter(p=>p.d>=3).length;const dl=[lp===0?1:lp===1?.7:.4];if(A.pitchFrames>=40)dl.push(A.variety>=3.2?1:A.variety>=2?.7:.3);dl.push(A.volStd<2?1:A.volStd<4?.7:.4);parts.push([2,dl.reduce((a,b)=>a+b,0)/dl.length])}
@@ -950,10 +963,19 @@ function aiCard(s,AI,d,tips){
   if(AI.body){const BT={eye_contact:['Hold eye contact','Look into the camera, or at one person, for each complete thought before moving on.'],gestures:['Gesture with purpose','Plan 2\u20133 gestures that match key words, and rest your hands at your sides between them.'],posture:['Stand still and tall','Plant your feet shoulder-width apart and stay put unless you move with a purpose.'],expression:['Let your face match your words','Smile at the light moments and let your expression follow the story.']};
     const bo=['eye_contact','gestures','posture','expression'];const bw=bo.find(k=>AI.body[k]&&AI.body[k].status==='no')||bo.find(k=>AI.body[k]&&AI.body[k].status==='partly');
     if(bw)tips.splice(tips.length&&tips[0][0]==='Swap fillers for silence'?1:0,0,BT[bw]);}
-  if(weak)tips.splice(tips.length&&tips[0][0]==='Swap fillers for silence'?1:0,0,STRUCT_TIPS[weak]);
+  const FWT={'Point':['Lead with your answer','State your point in the first sentence, before any background.'],'Reason':['Give one clear reason','Follow your point with a \u201cbecause\u2026\u201d sentence.'],'Example':['Make it concrete','Back your reason with one specific example or a short story.'],'Point again':['Land your point','Finish by restating your point in one line, then stop.'],
+    'Past':['Start with how it was','Open with a clear picture of the past.'],'Present':['Show how it is now','Say plainly what has changed today.'],'Future':['Look ahead','End with where things are going, or what you hope for.'],
+    'Problem':['Name the problem','Start with the pain in one vivid line.'],'Solution':['Give your fix','State your solution simply and specifically.'],'Benefit':['Show the payoff','End with what gets better, and for whom.'],
+    'Setup':['Set the scene fast','Who, where, when, in one or two lines.'],'Conflict':['Raise the stakes','Show what went wrong or what was at risk.'],'Turn':['Make the turn clear','Mark the moment things changed.'],'Lesson':['Say what it taught you','End with the lesson in one line.'],
+    opening:['Open with a hook','Skip \u201cSo, the topic is\u2026\u201d. Start with a bold line, a scene or a question.'],closing:['Close on purpose','End with a callback or a one-line lesson, then hold the pause. No \u201cso yeah, that\u2019s it\u201d.']};
+  let fwTip=null;
+  if(AI.framework){const F=AI.framework;if(!F.fits)fwTip=['Use PREP','Point, Reason, Example, Point again. See below how this answer could have been framed.'];
+    else{const seq=[['opening',F.opening],...(F.steps||[]).map(x=>[x.step,x]),['closing',F.closing]];const w=seq.find(x=>x[1]&&x[1].status==='no')||seq.find(x=>x[1]&&x[1].status==='partly');if(w&&FWT[w[0]])fwTip=FWT[w[0]]}}
+  if(fwTip)tips.splice(tips.length&&tips[0][0]==='Swap fillers for silence'?1:0,0,fwTip);
+  else if(weak&&!AI.framework)tips.splice(tips.length&&tips[0][0]==='Swap fillers for silence'?1:0,0,STRUCT_TIPS[weak]);
   return `<div class="card" style="gap:16px">${head}
   ${meter('Pace',Math.round(wpm)+' wpm',(wpm-60)/160*100,37.5,25,['Slow','120–160','Fast'])}
-  <div style="display:flex;flex-direction:column;gap:0"><h2 style="margin-bottom:4px">Structure</h2>${row('Opening',S.opening)}${row('Main points'+mpExtra,mp,'')}${pts?`<div style="padding:0 0 8px 76px" class="note">${pts}</div>`:''}${row('Transitions',S.transitions)}${row('Conclusion',S.conclusion)}${row('Takeaway',S.takeaway)}</div>
+  ${AI.framework?(()=>{const F=AI.framework;return `<div style="display:flex;flex-direction:column;gap:0"><h2 style="margin-bottom:2px">Framework: ${esc(F.name||'PREP')}</h2><span class="lab" style="margin-bottom:6px">${F.fits?'Your answer followed this framework.':'No clear framework, so it was checked against PREP (the default).'}</span>${row('Opening',F.opening)}${(F.steps||[]).map(x=>row(x.step,x)).join('')}${row('Closing',F.closing)}${Array.isArray(F.reframe)&&F.reframe.length?`<div style="margin-top:10px;background:#1C2129;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px"><b style="font-size:14px">How you could have framed it (PREP)</b>${F.reframe.slice(0,4).map(l=>{const i=String(l).indexOf(':');return `<span style="font-size:14px;line-height:1.5;color:#E5E7EB">${i>0?`<b style="color:var(--accent)">${esc(String(l).slice(0,i))}:</b>${esc(String(l).slice(i+1))}`:esc(l)}</span>`}).join('')}</div>`:''}</div>`})():`<div style="display:flex;flex-direction:column;gap:0"><h2 style="margin-bottom:4px">Structure</h2>${row('Opening',S.opening)}${row('Main points'+mpExtra,mp,'')}${pts?`<div style="padding:0 0 8px 76px" class="note">${pts}</div>`:''}${row('Transitions',S.transitions)}${row('Conclusion',S.conclusion)}${row('Takeaway',S.takeaway)}</div>`}
   ${AI.body?`<div style="display:flex;flex-direction:column;gap:0"><h2 style="margin-bottom:4px">Body language</h2>${row('Eye contact',AI.body.eye_contact)}${row('Gestures',AI.body.gestures)}${row('Posture',AI.body.posture)}${row('Facial expression',AI.body.expression)}</div>`:''}
   <div style="display:flex;flex-direction:column;gap:8px"><h2>Transcript</h2><div class="transcript">${parts||'<span class="lab">No speech detected.</span>'}</div></div>
   <div class="row"><span class="lab">AI can miss or mis-hear a few fillers.</span>${AI.tookSec?`<span class="lab mono">Took ${fmtShort(AI.tookSec)}</span>`:''}</div></div>`;
