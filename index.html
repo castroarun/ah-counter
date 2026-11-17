@@ -83,7 +83,11 @@ details.fold .chev{transition:transform .2s;color:var(--muted)}details.fold[open
 #l-buttons .fb{height:52px;padding:0 10px;gap:6px;font-size:15px;border-radius:12px}
 #l-buttons .fb .n{font-size:19px}
 #v-live .grid2 .btn.sm{height:42px}
-#b-stop{position:sticky;bottom:calc(12px + env(safe-area-inset-bottom));z-index:4;box-shadow:0 -10px 24px 6px rgba(14,17,22,.55)}
+#b-stop{position:fixed;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:440px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:6;box-shadow:0 -8px 28px 10px rgba(14,17,22,.7)}
+#v-live{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+.vid #l-vbox{max-height:32vh}
+.vid #l-buttons .fb{height:42px}
+.vid .grid2 .btn.sm{height:38px}
 mark{background:#3A2E12;color:#FCD34D;border-radius:4px;padding:0 3px;font-weight:600}
 .transcript{font-size:15px;line-height:1.7;color:#E5E7EB;max-height:320px;overflow:auto;padding-right:4px}
 .ck{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:#E5E7EB;padding:10px 0;border-top:1px solid var(--line)}
