@@ -88,7 +88,7 @@ mark{background:#3A2E12;color:#FCD34D;border-radius:4px;padding:0 3px;font-weigh
 .transcript{font-size:15px;line-height:1.7;color:#E5E7EB;max-height:320px;overflow:auto;padding-right:4px}
 .ck{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:#E5E7EB;padding:10px 0;border-top:1px solid var(--line)}
 .ck .s{flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:3px 9px;min-width:56px;text-align:center}
-.s-yes{background:#14532D;color:#BBF7D0}.s-partly{background:#713F12;color:#FDE68A}.s-no{background:#7F1D1D;color:#FECACA}
+.s-yes{background:#14532D;color:#BBF7D0}.s-partly{background:#713F12;color:#FDE68A}.s-no{background:#7F1D1D;color:#FECACA}.s-na{background:#262C36;color:#D1D5DB}
 .ck .d{display:flex;flex-direction:column;gap:2px}.ck .d span{font-size:13px;color:var(--muted)}
 .err{font-size:13px;color:#FCA5A5;line-height:1.5}
 input[type=text],input[type=password],select{height:46px;border-radius:12px;border:1px solid var(--line2);background:#0E1116;color:var(--text);padding:0 12px;font-size:16px;font-family:inherit;width:100%}
@@ -178,7 +178,7 @@ nav button.on{color:var(--accent)}
       <label class="f" id="tt-themewrap">Topic theme (optional)<input type="text" id="tt-theme" placeholder="e.g. travel, Diwali. Empty = random" maxlength="60"></label>
       <p class="lab" style="margin:0" id="tt-hint">Your topic is revealed when you tap Start, like at a real meeting.</p>
     </div>
-    <p class="lab hidden" id="s-modehint" style="margin:0">Video uses your front camera and adds body-language feedback (eye contact, gestures, posture, expression). Videos take more space on your phone and a little longer to check.</p>
+    <p class="lab hidden" id="s-modehint" style="margin:0">Video uses your front camera and adds body-language feedback (eye contact, expression, posture, and gestures if your hands are in frame). Handheld selfie is fine. For gesture feedback, prop the phone up at arm's length. Videos take more space and a little longer to check.</p>
   </div>
   <button class="btn" id="b-start"><svg width="18" height="18" viewBox="0 0 24 24" fill="#111827" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle></svg>Start</button>
   <p class="lab" style="text-align:center;margin:0" id="ai-status"></p>
@@ -329,7 +329,7 @@ async function wavFrom(blob,forceSR){
   for(let i=0;i<x.length;i++){const s=Math.max(-1,Math.min(1,x[i]));v.setInt16(44+i*2,s<0?s*0x8000:s*0x7FFF,true)}
   return new Blob([ab],{type:'audio/wav'});
 }
-const RULES_VERSION='v5';
+const RULES_VERSION='v6';
 const PINNED_MODELS=['gemini-3.5-flash','gemini-3.5-flash-lite','gemini-3.8-flash','gemini-3.1-flash-lite'];
 function buildPrompt(s){
   return `You are the Ah-Counter for a Toastmasters club. Listen to this speech recording and follow these rules exactly.
@@ -355,19 +355,20 @@ Do not judge content quality, humour, facts, opinions, grammar or vocabulary. Do
 For each check write "note": ONE short factual sentence describing what the speaker did, addressed as "you" (for example "You opened by asking the audience a question."). Observation only, no advice, no praise, no criticism of content.
 
 ${s.video?`PART C: BODY LANGUAGE (this is a video; judge ONLY what you SEE, using ONLY these rules; observation only, no advice)
-- eye_contact: "yes" if the speaker looks at the camera for most of the speech (roughly 70% or more). "partly" if they often look away (down, sideways, at notes). "no" if they rarely look at the camera.
-- gestures: "yes" if the hands are visible and used for deliberate gestures that match the words, with hands at rest in between. "partly" if gestures are few or repetitive, or there is some fidgeting. "no" if the hands stay hidden or still the whole time, or there is constant fidgeting. If the hands are out of frame most of the time, use "partly" and say so in the note.
-- posture: "yes" if upright and steady. "partly" if there is some swaying, leaning or shifting. "no" if slouched or constantly moving.
-- expression: "yes" if the facial expression changes to match the content (for example smiling at light moments). "partly" if mostly neutral. "no" if flat or tense throughout.
+- eye_contact (never "na"): "yes" if the speaker looks at the camera for most of the speech (roughly 70% or more). "partly" if they often look away (down, sideways, at notes). "no" if they rarely look at the camera.
+Most practice videos are filmed handheld in selfie mode, so the hands and lower body are often out of frame. Never mark the speaker down for something the camera cannot see.
+- gestures: if the hands are out of frame for most of the video, use "na" with the note "Your hands were out of frame." Otherwise: "yes" if the hands are used for deliberate gestures that match the words, with hands at rest in between; "partly" if gestures are few or repetitive, or there is some fidgeting; "no" if the hands stay still the whole time or there is constant fidgeting.
+- posture: judge only what is visible (in a close-up, the head and shoulders). "yes" if the head and shoulders are upright and steady. "partly" if there is some swaying, leaning or bobbing. "no" if slouched or constantly moving. Use "na" only if too little of the body is visible to judge. Ignore camera shake from holding the phone.
+- expression (never "na"): "yes" if the facial expression changes to match the content (for example smiling at light moments). "partly" if mostly neutral. "no" if flat or tense throughout.
 For each write "note": ONE short factual sentence addressed as "you", with an approximate time if relevant (for example "You looked down at about 0:45 for several seconds.").
 
 `:''}Return ONLY JSON matching the schema. If there is no speech, return an empty transcript, an empty fillers list and "no" for every check.`;
 }
-const SCHEMA_V=(video)=>{const chk={type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no']},note:{type:'STRING'}},required:['status','note']};
+const SCHEMA_V=(video)=>{const chkNA={type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no','na']},note:{type:'STRING'}},required:['status','note']};const chk={type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no']},note:{type:'STRING'}},required:['status','note']};
   return {type:'OBJECT',properties:{title:{type:'STRING'},transcript:{type:'STRING'},word_count:{type:'INTEGER'},
   fillers:{type:'ARRAY',items:{type:'OBJECT',properties:{word:{type:'STRING'},type:{type:'STRING',enum:['filler','repeat']},time_sec:{type:'NUMBER'}},required:['word','type','time_sec']}},
   structure:{type:'OBJECT',properties:{opening:chk,main_points:{type:'OBJECT',properties:{status:{type:'STRING',enum:['yes','partly','no']},count:{type:'INTEGER'},points:{type:'ARRAY',items:{type:'STRING'}},note:{type:'STRING'}},required:['status','count','points','note']},transitions:chk,conclusion:chk,takeaway:chk},required:['opening','main_points','transitions','conclusion','takeaway']},
-  ...(video?{body:{type:'OBJECT',properties:{eye_contact:chk,gestures:chk,posture:chk,expression:chk},required:['eye_contact','gestures','posture','expression']}}:{})},
+  ...(video?{body:{type:'OBJECT',properties:{eye_contact:chk,gestures:chkNA,posture:chkNA,expression:chk},required:['eye_contact','gestures','posture','expression']}}:{})},
   required:['title','transcript','word_count','fillers','structure',...(video?['body']:[])]}};
 const SCHEMA=SCHEMA_V(false);
 async function callGemini(model,key,mime,b64,prompt,opt,signal){
@@ -792,7 +793,7 @@ function scoreOf(s){
   const wpm=(AI.word_count||0)/Math.max(d/60,.1);if(AI.word_count)parts.push([1,wpm>=120&&wpm<=160?1:(wpm>=100&&wpm<=175)?.6:.3]);
   if(s.timing&&s.timing.r)parts.push([1,d>=s.timing.g-30&&d<=s.timing.r+30?1:.3]);
   if(A){const lp=A.pauses.filter(p=>p.d>=3).length;const dl=[lp===0?1:lp===1?.7:.4];if(A.pitchFrames>=40)dl.push(A.variety>=3.2?1:A.variety>=2?.7:.3);dl.push(A.volStd<2?1:A.volStd<4?.7:.4);parts.push([2,dl.reduce((a,b)=>a+b,0)/dl.length])}
-  if(AI.body){const bk=['eye_contact','gestures','posture','expression'].filter(k=>AI.body[k]);if(bk.length)parts.push([2,bk.reduce((a,k)=>a+st(AI.body[k]),0)/bk.length])}
+  if(AI.body){const bk=['eye_contact','gestures','posture','expression'].filter(k=>AI.body[k]&&AI.body[k].status!=='na');if(bk.length)parts.push([2,bk.reduce((a,k)=>a+st(AI.body[k]),0)/bk.length])}
   const w=parts.reduce((a,p)=>a+p[0],0);if(!w)return null;return Math.round(100*parts.reduce((a,p)=>a+p[0]*p[1],0)/w);
 }
 const scoreCol=n=>n>=75?'#22C55E':n>=50?'#EAB308':'#EF4444';
@@ -895,8 +896,8 @@ function aiCard(s,AI,d,tips){
   if(wpm>170)tips.push(['Slow down','You spoke at about '+Math.round(wpm)+' words a minute. Aim for 120–160 so the audience can keep up.']);
   if(wpm>0&&wpm<100)tips.push(['Pick up the pace','About '+Math.round(wpm)+' words a minute can feel slow. Aim for 120–160, and save slow delivery for key lines.']);
   const parts=String(AI.transcript||'').split(/(\[\[[^\]]*\]\])/g).map(p=>/^\[\[/.test(p)?`<mark>${esc(p.slice(2,-2))}</mark>`:esc(p)).join('');
-  const S=AI.structure||{};const lab={yes:'Yes',partly:'Partly',no:'No'};
-  const row=(name,o,extra)=>{if(!o)return '';const k=['yes','partly','no'].includes(o.status)?o.status:'partly';return `<div class="ck"><span class="s s-${k}">${lab[k]}</span><div class="d">${esc(name)}${extra||''}${o.note?`<span>${esc(o.note)}</span>`:''}</div></div>`};
+  const S=AI.structure||{};const lab={yes:'Yes',partly:'Partly',no:'No',na:'N/A'};
+  const row=(name,o,extra)=>{if(!o)return '';const k=['yes','partly','no','na'].includes(o.status)?o.status:'partly';return `<div class="ck"><span class="s s-${k}">${lab[k]}</span><div class="d">${esc(name)}${extra||''}${o.note?`<span>${esc(o.note)}</span>`:''}</div></div>`};
   const mp=S.main_points;const mpExtra=mp&&mp.count?` (${mp.count})`:'';
   const pts=mp&&Array.isArray(mp.points)&&mp.points.length?`<span>${mp.points.slice(0,5).map((p,i)=>(i+1)+'. '+esc(p)).join('<br>')}</span>`:'';
   const STRUCT_TIPS={opening:['Open with a hook','Start with a question, a short story, a quote or a striking fact, then name your topic. Avoid opening with an apology or \u201ctoday I will talk about\u201d.'],
